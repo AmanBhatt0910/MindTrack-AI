@@ -1,26 +1,33 @@
-import { ReactNode } from "react";
-import { Brain } from "lucide-react";
+import { Brain, BarChart, History } from "lucide-react";
+import ThemeToggle from "@/components/shared/ThemeToggle";
 
 export default function DashboardLayout({
   children,
 }: {
-  children: ReactNode;
+  children: React.ReactNode;
 }) {
   return (
     <div className="min-h-screen flex">
-      {/* Sidebar */}
-      <aside className="w-64 bg-slate-800 p-4 hidden md:block">
-        <div className="flex items-center gap-2 text-indigo-400 mb-6">
-          <Brain />
-          <span className="font-bold">MindTrack</span>
+      <aside className="w-64 bg-slate-800 p-4 hidden md:flex flex-col justify-between">
+        <div>
+          <div className="flex items-center gap-2 text-indigo-400 mb-6">
+            <Brain />
+            <span className="font-bold">MindTrack</span>
+          </div>
+
+          <nav className="space-y-3">
+            <p className="flex items-center gap-2 text-slate-300">
+              <BarChart size={16} /> Dashboard
+            </p>
+            <p className="flex items-center gap-2 text-slate-400">
+              <History size={16} /> History
+            </p>
+          </nav>
         </div>
 
-        <nav className="space-y-2">
-          <p className="text-slate-400">Dashboard</p>
-        </nav>
+        <ThemeToggle />
       </aside>
 
-      {/* Content */}
       <main className="flex-1 p-6">{children}</main>
     </div>
   );

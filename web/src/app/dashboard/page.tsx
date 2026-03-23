@@ -6,6 +6,9 @@ import PostAnalyzer from "@/features/dashboard/components/PostAnalyzer";
 import StatsCards from "@/features/dashboard/components/StatsCards";
 import HistoryList from "@/features/dashboard/components/HistoryList";
 import { HistoryItem } from "@/features/dashboard/types/history.types";
+import { exportToPDF } from "@/utils/exportPDF";
+import Button from "@/components/ui/Button";
+import AnalysisChart from "@/features/dashboard/components/AnalysisChart";
 
 const dummyHistory: HistoryItem[] = [
   {
@@ -32,11 +35,17 @@ export default function DashboardPage() {
 
         <PostAnalyzer />
 
+        <AnalysisChart />
+
         <div>
           <h2 className="text-lg font-semibold mb-2">
             Recent Analyses
           </h2>
           <HistoryList data={dummyHistory} />
+
+          <Button onClick={() => exportToPDF("dashboard")}>
+            Export Report
+          </Button>
         </div>
       </div>
     </DashboardLayout>
