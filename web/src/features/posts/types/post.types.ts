@@ -1,8 +1,4 @@
-export type MentalState =
-  | "Depression"
-  | "Anxiety"
-  | "Stress"
-  | "Neutral";
+export type MentalState = "Depression" | "Anxiety" | "Neutral" | "Bipolar" | "Stress";
 
 export interface AnalysisResponse {
   prediction: MentalState;

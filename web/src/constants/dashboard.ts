@@ -83,9 +83,10 @@ export const LANGUAGES = [
 // ─── Prediction → badge variant mapping ───────────────────────────────────────
 export const PREDICTION_VARIANT = {
   Depression: "danger",
-  Anxiety:    "warning",
-  Stress:     "warning",
-  Neutral:    "success",
+  Anxiety: "warning",
+  Stress: "warning",
+  Bipolar: "warning",
+  Neutral: "success",
 } as const;
 
 // ─── Post analyzer copy ───────────────────────────────────────────────────────

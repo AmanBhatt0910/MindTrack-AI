@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Search, Clock, ChevronRight, FileText } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+
 import { HistoryItem } from "../types/history.types";
 import Badge from "@/components/ui/Badge";
 import Input from "@/components/ui/Input";

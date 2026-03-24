@@ -65,7 +65,11 @@ function SectionHeader() {
   );
 }
 
-export default function PostAnalyzer() {
+interface PostAnalyzerProps {
+  onAnalysisComplete?: () => void;
+}
+
+export default function PostAnalyzer({ onAnalysisComplete }: PostAnalyzerProps) {
   const [text, setText] = useState("");
   const [language, setLanguage] = useState("en");
   const [loading, setLoading] = useState(false);
@@ -79,6 +83,8 @@ export default function PostAnalyzer() {
     try {
       const res = await postService.analyze(text, language);
       setResult(res);
+      // Notify parent that analysis succeeded (so history can be refreshed)
+      onAnalysisComplete?.();
     } catch {
       setError("Analysis failed. Please try again.");
     } finally {
