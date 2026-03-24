@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { Suspense, useEffect } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { useRequireAuth } from "@/hooks/useRequireAuth";
 import DashboardLayout from "@/layouts/DashboardLayout";
@@ -17,8 +17,7 @@ const TAB_CONTENT: Record<SettingsTabId, React.ReactNode> = {
   danger: <DangerTab />,
 };
 
-export default function SettingsPage() {
-  const user = useRequireAuth();
+function SettingsContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
 
@@ -32,6 +31,15 @@ export default function SettingsPage() {
     }
   }, [tabParam, router]);
 
+  return (
+    <div className="max-w-4xl mx-auto">
+      <div className="flex-1 min-w-0">{TAB_CONTENT[activeTab]}</div>
+    </div>
+  );
+}
+
+export default function SettingsPage() {
+  const user = useRequireAuth();
   if (!user) return null;
 
   return (
@@ -39,9 +47,9 @@ export default function SettingsPage() {
       title="Settings"
       subtitle="Manage your account, notifications, and API access"
     >
-      <div className="max-w-4xl mx-auto">
-        <div className="flex-1 min-w-0">{TAB_CONTENT[activeTab]}</div>
-      </div>
+      <Suspense fallback={<div className="max-w-4xl mx-auto">Loading settings...</div>}>
+        <SettingsContent />
+      </Suspense>
     </DashboardLayout>
   );
 }
