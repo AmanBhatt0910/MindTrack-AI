@@ -34,7 +34,7 @@ const Card = forwardRef<HTMLDivElement, CardProps>(
     <div
       ref={ref}
       className={clsx(
-        "rounded-[var(--radius-lg)] transition-colors duration-200",
+        "rounded-lg transition-colors duration-200",
         variantStyles[variant],
         paddingStyles[padding],
         className

@@ -1,7 +1,6 @@
 "use client";
 
 import { forwardRef, ButtonHTMLAttributes } from "react";
-import { motion, HTMLMotionProps } from "framer-motion";
 import { clsx } from "clsx";
 
 type Variant = "primary" | "secondary" | "ghost" | "danger";
@@ -55,7 +54,7 @@ const Button = forwardRef<HTMLButtonElement, ButtonProps>(
         disabled={isDisabled}
         className={clsx(
           // base
-          "relative inline-flex items-center justify-center rounded-[var(--radius-md)]",
+          "relative inline-flex items-center justify-center rounded-md",
           "font-medium tracking-[-0.01em] transition-all duration-200",
           "disabled:opacity-40 disabled:cursor-not-allowed",
           "select-none cursor-pointer",
