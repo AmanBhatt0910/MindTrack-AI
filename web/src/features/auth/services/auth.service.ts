@@ -1,14 +1,15 @@
-import { LoginInput, SignupInput } from "../schemas/auth.schema";
+import { api } from "@/lib/axios";
 import { AuthResponse } from "@/types/auth.types";
+import { LoginInput, SignupInput } from "../schemas/auth.schema";
 
 export const authService = {
   login: async (data: LoginInput): Promise<AuthResponse> => {
-    await new Promise((res) => setTimeout(res, 1000));
-    return { user: { id: "1", email: data.email }, token: "dummy-token" };
+    const res = await api.post("/auth/login", data);
+    return res.data;
   },
 
   signup: async (data: SignupInput): Promise<AuthResponse> => {
-    await new Promise((res) => setTimeout(res, 1000));
-    return { user: { id: "1", email: data.email }, token: "dummy-token" };
+    const res = await api.post("/auth/signup", data);
+    return res.data;
   },
 };

@@ -19,7 +19,7 @@ export default function DashboardLayout({
      * viewport. The sidebar gets h-full so it fills exactly that height.
      * Only the main column scrolls via overflow-y-auto.
      */
-    <div className="flex h-screen overflow-hidden bg-[var(--bg)]">
+    <div className="flex h-screen overflow-hidden bg-(--bg)">
       {/* Sidebar — full viewport height, never scrolls */}
       <Sidebar />
 

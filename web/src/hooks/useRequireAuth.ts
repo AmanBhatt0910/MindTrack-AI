@@ -5,14 +5,14 @@ import { useRouter } from "next/navigation";
 import { useAuthStore } from "@/store/useAuthStore";
 
 export function useRequireAuth() {
-  const user = useAuthStore((s) => s.user);
   const router = useRouter();
+  const { user, hasHydrated } = useAuthStore();
 
   useEffect(() => {
-    if (!user) {
+    if (hasHydrated && !user) {
       router.push("/login");
     }
-  }, [user, router]);
+  }, [hasHydrated, user, router]);
 
   return user;
 }

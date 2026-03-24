@@ -1,92 +1,76 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { Brain } from "lucide-react";
 import { clsx } from "clsx";
-import { SIDEBAR_NAV, SIDEBAR_BOTTOM } from "@/constants/dashboard";
+import { SIDEBAR_NAV } from "@/constants/dashboard";
 import { useAuthStore } from "@/store/useAuthStore";
 
 export default function Sidebar() {
   const pathname = usePathname();
-  const user = useAuthStore((s) => s.user);
+  const router = useRouter();
+  const { user, logout } = useAuthStore();
+
+  const handleLogout = () => {
+    logout();
+    router.push("/login");
+  };
 
   return (
-    <aside
-      className="hidden md:flex flex-col w-56 shrink-0 h-full
-                 bg-(--surface) border-r border-(--border)"
-    >
+    <aside className="hidden md:flex flex-col w-56 shrink-0 h-full bg-(--surface) border-r border-(--border)">
+      
       {/* Brand */}
-      <div className="flex items-center gap-2.5 px-5 h-14 border-b border-(--border) shrink-0">
-        <div
-          className="size-7 rounded-lg bg-(--accent) flex items-center justify-center shrink-0"
-          style={{ boxShadow: "0 0 14px var(--accent-glow)" }}
-        >
+      <div className="flex items-center gap-2.5 px-5 h-14 border-b border-(--border)">
+        <div className="size-7 rounded-lg bg-(--accent) flex items-center justify-center">
           <Brain size={14} className="text-[#080c10]" />
         </div>
-        <span className="font-semibold text-sm tracking-[-0.02em] text-(--text)">
+        <span className="font-semibold text-sm text-(--text)">
           MindTrack<span className="text-(--accent)">AI</span>
         </span>
       </div>
 
       {/* Nav */}
       <nav className="flex-1 px-3 py-4 space-y-0.5">
-        <p
-          className="px-2 pb-2 text-[10px] uppercase tracking-widest text-(--text-muted)"
-          style={{ fontFamily: "var(--font-mono)" }}
-        >
-          Menu
-        </p>
-
         {SIDEBAR_NAV.map(({ label, href, icon: Icon }) => {
-          const isActive = pathname === href || (href !== "/dashboard" && pathname.startsWith(href));
+          const isActive =
+            pathname === href ||
+            (href !== "/dashboard" && pathname.startsWith(href));
+
           return (
             <Link
               key={label}
               href={href}
               className={clsx(
                 "flex items-center gap-2.5 px-3 py-2 rounded-md text-sm",
-                "transition-all duration-150 group",
                 isActive
-                  ? "bg-(--accent-dim) text-(--accent) border border-(--border-active)"
-                  : "text-(--text-secondary) hover:text-(--text) hover:bg-(--surface-raised)"
+                  ? "bg-(--accent-dim) text-(--accent)"
+                  : "text-(--text-secondary) hover:bg-(--surface-raised)"
               )}
             >
-              <Icon
-                size={15}
-                className={clsx(
-                  "shrink-0 transition-colors",
-                  isActive ? "text-(--accent)" : "text-(--text-muted) group-hover:text-(--text-secondary)"
-                )}
-              />
+              <Icon size={15} />
               {label}
             </Link>
           );
         })}
       </nav>
 
-      {/* Bottom section */}
-      <div className="px-3 pb-4 space-y-0.5 border-t border-(--border) pt-3">
-        {SIDEBAR_BOTTOM.map(({ label, href, icon: Icon }) => (
-          <Link
-            key={label}
-            href={href}
-            className="flex items-center gap-2.5 px-3 py-2 rounded-md text-sm
-                       text-(--text-secondary) hover:text-red-400 hover:bg-red-500/5
-                       transition-all duration-150 group"
-          >
-            <Icon size={15} className="shrink-0 text-(--text-muted) group-hover:text-red-400 transition-colors" />
-            {label}
-          </Link>
-        ))}
+      {/* Bottom */}
+      <div className="px-3 pb-4 border-t border-(--border) pt-3 space-y-2">
+        
+        {/* Logout Button */}
+        <button
+          onClick={handleLogout}
+          className="w-full flex items-center gap-2.5 px-3 py-2 rounded-md text-sm
+                     text-(--text-secondary) hover:text-red-400 hover:bg-red-500/5 transition"
+        >
+          Log out
+        </button>
 
-        {/* User avatar */}
+        {/* User */}
         {user && (
-          <div className="flex items-center gap-2.5 px-3 py-2 mt-1">
-            <div
-              className="size-7 rounded-full bg-(--accent) flex items-center justify-center
-                         text-[#080c10] text-[10px] font-bold shrink-0"
-            >
+          <div className="flex items-center gap-2.5 px-3 py-2">
+            <div className="size-7 rounded-full bg-(--accent) flex items-center justify-center text-[#080c10] text-[10px] font-bold">
               {user.email.charAt(0).toUpperCase()}
             </div>
             <div className="min-w-0">

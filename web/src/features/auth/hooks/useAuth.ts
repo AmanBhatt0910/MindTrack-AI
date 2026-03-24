@@ -6,7 +6,7 @@ import { LoginInput, SignupInput } from "../schemas/auth.schema";
 import { useRouter } from "next/navigation";
 
 export function useAuth() {
-  const { setUser } = useAuthStore();
+  const { setAuth } = useAuthStore();
   const [loading, setLoading] = useState(false);
   const router = useRouter();
 
@@ -14,7 +14,8 @@ export function useAuth() {
     try {
       setLoading(true);
       const res = await authService.login(data);
-      setUser(res.user);
+      localStorage.setItem("token", res.token);
+      setAuth(res.user, res.token);
       toast.success("Login successful!");
       router.push("/dashboard");
     } catch (err: unknown) {
@@ -29,7 +30,8 @@ export function useAuth() {
     try {
       setLoading(true);
       const res = await authService.signup(data);
-      setUser(res.user);
+      localStorage.setItem("token", res.token);
+      setAuth(res.user, res.token);
       toast.success("Account created!");
       router.push("/dashboard");
     } catch (err: unknown) {
