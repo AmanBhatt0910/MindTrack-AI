@@ -14,15 +14,11 @@ export function useAuth() {
     try {
       setLoading(true);
       const res = await authService.login(data);
-
       setUser(res.user);
       toast.success("Login successful!");
-
       router.push("/dashboard");
     } catch (err: unknown) {
-      const message =
-        err instanceof Error ? err.message : "Login failed";
-
+      const message = err instanceof Error ? err.message : "Login failed";
       toast.error(message);
     } finally {
       setLoading(false);
@@ -33,15 +29,11 @@ export function useAuth() {
     try {
       setLoading(true);
       const res = await authService.signup(data);
-
       setUser(res.user);
       toast.success("Account created!");
-
       router.push("/dashboard");
     } catch (err: unknown) {
-      const message =
-        err instanceof Error ? err.message : "Signup failed";
-
+      const message = err instanceof Error ? err.message : "Signup failed";
       toast.error(message);
     } finally {
       setLoading(false);

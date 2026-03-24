@@ -1,40 +1,109 @@
 "use client";
 
-import { motion } from "framer-motion";
-import { Brain } from "lucide-react";
+import { motion, type Variants } from "framer-motion";
+import { ArrowRight } from "lucide-react";
 import Button from "@/components/ui/Button";
+import GridBackground from "@/components/ui/GridBackground";
+import LiveBadge from "@/components/ui/LiveBadge";
+import StatsStrip from "@/components/ui/StatsStrip";
+import ScrollCue from "@/components/ui/ScrollCue";
 
-export default function Hero({
-  onStart,
-}: {
+// ─── Animation variants ────────────────────────────────────────────────────────
+const EASE = [0.16, 1, 0.3, 1] as const;
+
+const container: Variants = {
+  hidden: {},
+  show: {
+    transition: { staggerChildren: 0.1, delayChildren: 0.15 },
+  },
+};
+
+const fadeUp: Variants = {
+  hidden: { opacity: 0, y: 24 },
+  show: {
+    opacity: 1,
+    y: 0,
+    transition: { duration: 0.7, ease: EASE },
+  },
+};
+
+const fadeIn: Variants = {
+  hidden: { opacity: 0 },
+  show: { opacity: 1, transition: { duration: 0.6 } },
+};
+
+interface HeroProps {
   onStart: () => void;
-}) {
+}
+
+export default function Hero({ onStart }: HeroProps) {
   return (
-    <section className="relative text-center py-24 space-y-6">
-      {/* Gradient Background */}
-      <div className="absolute inset-0 bg-gradient-to-r from-indigo-500/10 to-purple-500/10 blur-3xl -z-10" />
+    <section className="relative min-h-[92dvh] flex flex-col items-center justify-center text-center py-24 -mx-4 md:-mx-8 px-4 md:px-8">
+      <GridBackground />
 
       <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="flex items-center justify-center gap-2 text-indigo-400"
+        variants={container}
+        initial="hidden"
+        animate="show"
+        className="relative z-10 flex flex-col items-center gap-7 max-w-3xl"
       >
-        <Brain size={40} />
-        <h1 className="text-5xl font-bold">MindTrack AI</h1>
+        <LiveBadge />
+
+        <motion.h1
+          variants={fadeUp}
+          className="text-[clamp(2.4rem,6vw,4.5rem)] font-bold tracking-[-0.035em] leading-[1.05]
+                     text-(--text)"
+        >
+          Detect mental health{" "}
+          <br className="hidden sm:block" />
+          <span
+            className="text-transparent bg-clip-text"
+            style={{
+              backgroundImage:
+                "linear-gradient(135deg, var(--accent) 0%, #818cf8 100%)",
+            }}
+          >
+            signals
+          </span>{" "}
+          in seconds.
+        </motion.h1>
+
+        <motion.p
+          variants={fadeUp}
+          className="text-base md:text-lg text-(--text-secondary) max-w-xl leading-relaxed"
+        >
+          MindTrack AI analyzes social media posts using explainable AI —
+          giving researchers, clinicians, and safety teams actionable insights
+          they can actually trust.
+        </motion.p>
+
+        <motion.div
+          variants={fadeUp}
+          className="flex flex-wrap items-center justify-center gap-3"
+        >
+          <Button
+            onClick={onStart}
+            size="lg"
+            icon={<ArrowRight size={16} />}
+            iconPosition="right"
+          >
+            Start analyzing
+          </Button>
+          <Button variant="secondary" size="lg">
+            View demo
+          </Button>
+        </motion.div>
+
+        <motion.div
+          variants={fadeIn}
+          className="w-px h-10 bg-(--border)"
+          aria-hidden
+        />
+
+        <StatsStrip />
       </motion.div>
 
-      <motion.p
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        className="text-slate-400 max-w-xl mx-auto text-lg"
-      >
-        Detect mental health signals from social media using AI-powered
-        analysis with explainable insights.
-      </motion.p>
-
-      <motion.div whileHover={{ scale: 1.05 }}>
-        <Button onClick={onStart}>Get Started</Button>
-      </motion.div>
+      <ScrollCue />
     </section>
   );
 }

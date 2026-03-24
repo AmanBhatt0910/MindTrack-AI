@@ -1,17 +1,18 @@
-import { motion } from "framer-motion";
+import { Lightbulb } from "lucide-react";
 
 export default function ExplanationCard({ text }: { text: string }) {
   return (
-    <motion.div
-      className="p-3 rounded-lg text-sm"
-      style={{
-        backgroundColor: "var(--border)",
-        color: "var(--text)",
-      }}
-      initial={{ opacity: 0, y: 10 }}
-      animate={{ opacity: 1, y: 0 }}
+    <div
+      className="flex items-start gap-2.5 rounded-[var(--radius-md)] px-3 py-2.5
+                 bg-[var(--surface-raised)] border border-[var(--border)]"
     >
-      • {text}
-    </motion.div>
+      <Lightbulb
+        size={13}
+        className="text-[var(--accent)] shrink-0 mt-0.5"
+      />
+      <p className="text-xs text-[var(--text-secondary)] leading-relaxed">
+        {text}
+      </p>
+    </div>
   );
 }

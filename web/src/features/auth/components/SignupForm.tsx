@@ -2,11 +2,24 @@
 
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { signupSchema, SignupInput } from "../schemas/auth.schema";
-import { useAuth } from "../hooks/useAuth";
-import Button from "@/components/ui/Button";
 import { motion } from "framer-motion";
 import Link from "next/link";
+import { User, Mail, Lock } from "lucide-react";
+
+import { signupSchema, type SignupInput } from "../schemas/auth.schema";
+import { useAuth } from "../hooks/useAuth";
+import Input from "@/components/ui/Input";
+import AuthFormWrapper from "./AuthFormWrapper";
+import { AUTH_COPY, AUTH_FIELDS } from "@/constants/auth";
+
+const EASE = [0.16, 1, 0.3, 1] as const;
+
+const field = {
+  hidden: { opacity: 0, y: 12 },
+  show:   { opacity: 1, y: 0, transition: { duration: 0.5, ease: EASE } },
+};
+
+const COPY = AUTH_COPY.signup;
 
 export default function SignupForm() {
   const { signup, loading } = useAuth();
@@ -20,46 +33,75 @@ export default function SignupForm() {
   });
 
   return (
-    <motion.form
+    <AuthFormWrapper
       onSubmit={handleSubmit(signup)}
-      className="space-y-4 w-full max-w-md"
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
+      loading={loading}
+      submitText={COPY.submit}
+      loadingText={COPY.loading}
+      switchText={COPY.switchText}
+      switchLink={COPY.switchHref}
+      switchLinkText={COPY.switchLink}
     >
-      <input
-        {...register("name")}
-        placeholder="Name"
-        className="w-full p-3 rounded-lg bg-slate-800"
-      />
-      {errors.name && <p className="text-red-400">{errors.name.message}</p>}
+      {/* Name */}
+      <motion.div variants={field}>
+        <Input
+          {...register("name")}
+          type="text"
+          label={AUTH_FIELDS.name.label}
+          placeholder={AUTH_FIELDS.name.placeholder}
+          autoComplete={AUTH_FIELDS.name.autoComplete}
+          iconLeft={<User size={14} />}
+          error={errors.name?.message}
+        />
+      </motion.div>
 
-      <input
-        {...register("email")}
-        placeholder="Email"
-        className="w-full p-3 rounded-lg bg-slate-800"
-      />
-      {errors.email && <p className="text-red-400">{errors.email.message}</p>}
+      {/* Email */}
+      <motion.div variants={field}>
+        <Input
+          {...register("email")}
+          type="email"
+          label={AUTH_FIELDS.email.label}
+          placeholder={AUTH_FIELDS.email.placeholder}
+          autoComplete={AUTH_FIELDS.email.autoComplete}
+          iconLeft={<Mail size={14} />}
+          error={errors.email?.message}
+        />
+      </motion.div>
 
-      <input
-        {...register("password")}
-        type="password"
-        placeholder="Password"
-        className="w-full p-3 rounded-lg bg-slate-800"
-      />
-      {errors.password && (
-        <p className="text-red-400">{errors.password.message}</p>
-      )}
+      {/* Password */}
+      <motion.div variants={field}>
+        <Input
+          {...register("password")}
+          type="password"
+          label={AUTH_FIELDS.passwordNew.label}
+          placeholder={AUTH_FIELDS.passwordNew.placeholder}
+          autoComplete={AUTH_FIELDS.passwordNew.autoComplete}
+          iconLeft={<Lock size={14} />}
+          showPasswordToggle
+          error={errors.password?.message}
+        />
+      </motion.div>
 
-      <p className="text-sm text-slate-400">
-        Already have an account?{" "}
-        <Link href="/login" className="text-indigo-400">
-          Login
-        </Link>
-      </p>
-
-      <Button type="submit" disabled={loading}>
-        {loading ? "Loading..." : "Sign Up"}
-      </Button>
-    </motion.form>
+      {/* Terms notice */}
+      <motion.div variants={field}>
+        <p className="text-xs text-(--text-muted) leading-relaxed">
+          By creating an account you agree to our{" "}
+          <Link
+            href="/terms"
+            className="text-(--text-secondary) hover:text-(--accent) transition-colors underline underline-offset-2"
+          >
+            Terms of Service
+          </Link>{" "}
+          and{" "}
+          <Link
+            href="/privacy"
+            className="text-(--text-secondary) hover:text-(--accent) transition-colors underline underline-offset-2"
+          >
+            Privacy Policy
+          </Link>
+          .
+        </p>
+      </motion.div>
+    </AuthFormWrapper>
   );
 }

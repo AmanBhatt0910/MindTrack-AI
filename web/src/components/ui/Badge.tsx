@@ -1,25 +1,36 @@
-import clsx from "clsx";
+import { HTMLAttributes } from "react";
+import { clsx } from "clsx";
+
+type BadgeVariant = "default" | "accent" | "success" | "warning" | "danger";
+
+interface BadgeProps extends HTMLAttributes<HTMLSpanElement> {
+  variant?: BadgeVariant;
+}
+
+const variantStyles: Record<BadgeVariant, string> = {
+  default: "bg-[var(--surface-raised)] text-[var(--text-secondary)] border-[var(--border)]",
+  accent:  "bg-[var(--accent-dim)] text-[var(--accent)] border-[var(--border-active)]",
+  success: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20",
+  warning: "bg-amber-500/10 text-amber-400 border-amber-500/20",
+  danger:  "bg-red-500/10 text-red-400 border-red-500/20",
+};
 
 export default function Badge({
-  children,
   variant = "default",
-}: {
-  children: string;
-  variant?: "default" | "success" | "danger";
-}) {
-  const styles = {
-    default: "bg-slate-700 text-white",
-    success: "bg-green-500/20 text-green-400",
-    danger: "bg-red-500/20 text-red-400",
-  };
-
+  className,
+  children,
+  ...props
+}: BadgeProps) {
   return (
     <span
-      className="px-2 py-1 rounded-md text-xs"
-      style={{
-        backgroundColor: "var(--border)",
-        color: "var(--text)",
-      }}
+      className={clsx(
+        "inline-flex items-center px-2 py-0.5 rounded-full",
+        "text-[11px] font-medium tracking-wide border",
+        variantStyles[variant],
+        className
+      )}
+      style={{ fontFamily: "var(--font-mono)" }}
+      {...props}
     >
       {children}
     </span>
