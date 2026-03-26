@@ -1,0 +1,6 @@
+# Ignore model files
+model/final_mental_health_model/
+
+# optional
+*.safetensors
+*.bin

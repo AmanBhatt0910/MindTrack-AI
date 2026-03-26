@@ -1,3 +1,2 @@
-# keep folder structure
-*
-!.gitignore
+final_mental_health_model/
+*.safetensors
