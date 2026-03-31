@@ -14,12 +14,12 @@ import { ANALYZER_COPY } from "@/constants/dashboard";
 // ─── Skeleton placeholder ─────────────────────────────────────────────────────
 function ResultSkeleton() {
   return (
-    <div className="rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)] p-6 space-y-5 h-full">
+    <div className="rounded-lg border border-(--border) bg-(--surface) p-6 space-y-5 h-full">
       <div className="flex items-center justify-between">
         <div className="h-4 w-28 rounded shimmer" />
         <div className="h-5 w-20 rounded-full shimmer" />
       </div>
-      <div className="h-px bg-[var(--border)]" />
+      <div className="h-px bg-(--border)" />
       <div className="space-y-2">
         <div className="h-3 w-20 rounded shimmer" />
         <div className="h-2 w-full rounded-full shimmer" />
