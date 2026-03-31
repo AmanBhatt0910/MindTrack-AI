@@ -6,15 +6,18 @@ import { Brain, ArrowRight } from "lucide-react";
 import { motion } from "framer-motion";
 import { clsx } from "clsx";
 import Button from "@/components/ui/Button";
-
-const NAV_LINKS = [
-  { label: "Features", href: "#features" },
-  { label: "How It Works", href: "#how-it-works" },
-] as const;
+import LanguageToggle from "@/components/shared/LanguageToggle";
+import { useTranslation } from "@/hooks/useTranslation";
 
 export default function Header() {
   const pathname = usePathname();
   const isHome = pathname === "/";
+  const { t } = useTranslation();
+
+  const NAV_LINKS = [
+    { label: t("features"), href: "#features" },
+    { label: t("howItWorks"), href: "#how-it-works" },
+  ] as const;
 
   return (
     <motion.header
@@ -66,16 +69,17 @@ export default function Header() {
           </nav>
         )}
 
-        {/* CTA */}
+        {/* CTA + language toggle */}
         <div className="flex items-center gap-2">
+          <LanguageToggle />
           <Link href="/login">
             <Button variant="ghost" size="sm">
-              Sign in
+              {t("signIn")}
             </Button>
           </Link>
           <Link href="/signup">
             <Button size="sm" icon={<ArrowRight size={12} />} iconPosition="right">
-              Get started
+              {t("getStarted")}
             </Button>
           </Link>
         </div>

@@ -6,10 +6,13 @@ import StatsCards from "@/features/dashboard/components/StatsCards";
 import PostAnalyzer from "@/features/dashboard/components/PostAnalyzer";
 import AnalysisChart from "@/features/dashboard/components/AnalysisChart";
 import HistoryList from "@/features/dashboard/components/HistoryList";
+import MentalHealthInfo from "@/features/dashboard/components/MentalHealthInfo";
+import StrugglingButton from "@/features/crisis/components/StrugglingButton";
 import { HistoryItem } from "@/features/dashboard/types/history.types";
 import { useEffect, useState, useCallback } from "react";
 import { MentalState } from "@/features/posts/types/post.types";
 import { api } from "@/lib/axios";
+import { useTranslation } from "@/hooks/useTranslation";
 
 interface AnalysisDocument {
   _id: string;
@@ -24,6 +27,7 @@ interface AnalysisDocument {
 
 export default function DashboardPage() {
   const user = useRequireAuth();
+  const { t } = useTranslation();
   const [history, setHistory] = useState<HistoryItem[]>([]);
   const [error, setError] = useState<string | null>(null);
 
@@ -60,10 +64,28 @@ export default function DashboardPage() {
 
   if (!user) return null;
 
+  if (loading) {
+    return (
+      <DashboardLayout title={t("dashboardTitle")} subtitle={t("loading")}>
+        <div className="flex justify-center py-12">
+          <div className="animate-pulse text-muted">{t("loading")}</div>
+        </div>
+      </DashboardLayout>
+    );
+  }
+
+  if (error) {
+    return (
+      <DashboardLayout title={t("dashboardTitle")} subtitle={t("dashboardSubtitle")}>
+        <div className="text-red-500">Error: {error}</div>
+      </DashboardLayout>
+    );
+  }
+
   return (
     <DashboardLayout
-      title="Dashboard"
-      subtitle="Monitor mental health signals across your analyzed posts"
+      title={t("dashboardTitle")}
+      subtitle={t("dashboardSubtitle")}
     >
       {error && (
         <div className="mb-4 rounded-md bg-red-500/10 border border-red-500/20 p-3 text-sm text-red-400">
@@ -71,10 +93,16 @@ export default function DashboardPage() {
         </div>
       )}
       <div className="space-y-8 max-w-6xl">
+        {/* I'm Struggling button — prominent, top of page */}
+        <div className="flex justify-end">
+          <StrugglingButton />
+        </div>
+
         <StatsCards history={history} />
         <PostAnalyzer onAnalysisComplete={refreshHistory} />
         <AnalysisChart history={history} />
         <HistoryList data={history} />
+        <MentalHealthInfo />
       </div>
     </DashboardLayout>
   );

@@ -3,16 +3,19 @@
 import { useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { Brain, ChevronDown, ChevronRight } from "lucide-react";
+import { Brain, ChevronDown, ChevronRight, LayoutDashboard, FileText, History, Settings, Users } from "lucide-react";
 import { clsx } from "clsx";
 import { SIDEBAR_NAV, SETTINGS_SUBMENU } from "@/constants/dashboard";
 import { useAuthStore } from "@/store/useAuthStore";
+import { useTranslation } from "@/hooks/useTranslation";
+import LanguageToggle from "@/components/shared/LanguageToggle";
 
 export default function Sidebar() {
   const pathname = usePathname();
   const router = useRouter();
   const searchParams = useSearchParams();
   const { user, logout } = useAuthStore();
+  const { t } = useTranslation();
 
   const [settingsOpen, setSettingsOpen] = useState(
     pathname === "/settings" || pathname.startsWith("/settings/")
@@ -28,6 +31,14 @@ export default function Sidebar() {
   // Determine if the Settings link itself is active
   const isSettingsActive = pathname === "/settings";
 
+  const NAV_ITEMS = [
+    { label: t("overview"), href: "/dashboard", icon: LayoutDashboard },
+    { label: t("analyze"), href: "/dashboard#analyzer", icon: FileText },
+    { label: t("history"), href: "/dashboard#history", icon: History },
+    { label: t("counselling"), href: "/counselling", icon: Users },
+    { label: t("settings"), href: "/settings", icon: Settings },
+  ] as const;
+
   return (
     <aside className="hidden md:flex flex-col w-56 shrink-0 h-full bg-(--surface) border-r border-(--border)">
       {/* Brand */}
@@ -42,13 +53,13 @@ export default function Sidebar() {
 
       {/* Nav */}
       <nav className="flex-1 px-3 py-4 space-y-0.5">
-        {SIDEBAR_NAV.map(({ label, href, icon: Icon }) => {
+        {NAV_ITEMS.map(({ label, href, icon: Icon }) => {
           const isActive =
             pathname === href ||
-            (href !== "/dashboard" && pathname.startsWith(href));
+            (href !== "/dashboard" && !href.includes("#") && pathname.startsWith(href));
 
           // Special handling for Settings – it's the parent, not a link (we'll use button to toggle)
-          if (label === "Settings") {
+          if (label === t("settings")) {
             return (
               <div key={label}>
                 <button
@@ -103,7 +114,7 @@ export default function Sidebar() {
           // Other nav items
           return (
             <Link
-              key={label}
+              key={href}
               href={href}
               className={clsx(
                 "flex items-center gap-2.5 px-3 py-2 rounded-md text-sm",
@@ -119,13 +130,19 @@ export default function Sidebar() {
         })}
       </nav>
 
-      {/* Bottom – logout + user info (unchanged) */}
-      <div className="px-3 pb-4 border-t border-(--border) pt-3 space-y-2">
+      {/* Bottom */}
+      <div className="px-3 pb-4 border-t border-(--border) pt-3 space-y-3">
+        {/* Language toggle */}
+        <div className="px-1">
+          <LanguageToggle />
+        </div>
+
+        {/* Logout Button */}
         <button
           onClick={handleLogout}
           className="w-full flex items-center gap-2.5 px-3 py-2 rounded-md text-sm text-(--text-secondary) hover:text-red-400 hover:bg-red-500/5 transition"
         >
-          Log out
+          {t("logOut")}
         </button>
         {user && (
           <div className="flex items-center gap-2.5 px-3 py-2">
@@ -136,7 +153,7 @@ export default function Sidebar() {
               <p className="text-xs font-medium text-(--text) truncate">
                 {user.email}
               </p>
-              <p className="text-[10px] text-(--text-muted)">Free plan</p>
+              <p className="text-[10px] text-(--text-muted)">{t("freePlan")}</p>
             </div>
           </div>
         )}

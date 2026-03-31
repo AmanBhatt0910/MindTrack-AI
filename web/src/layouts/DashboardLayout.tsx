@@ -6,6 +6,7 @@ import Sidebar from "@/components/shared/Sidebar";
 import DashboardHeader from "./components/DashboardHeader";
 import DashboardFooter from "./components/DashboardFooter";
 import MobileSidebar from "./components/MobileSidebar";
+import HelpBanner from "@/components/ui/HelpBanner";
 
 interface DashboardLayoutProps {
   children: React.ReactNode;
@@ -36,7 +37,13 @@ export default function DashboardLayout({
       <div className="flex flex-col flex-1 min-w-0 h-full">
         <DashboardHeader title={title} subtitle={subtitle} onMenuClick={handleMenuClick} />
 
-        <main id="dashboard-content" className="flex-1 overflow-y-auto px-6 py-6">
+        {/* Help phone banner */}
+        <HelpBanner />
+
+        <main
+          id="dashboard-content"
+          className="flex-1 overflow-y-auto px-6 py-6"
+        >
           {children}
         </main>
 
