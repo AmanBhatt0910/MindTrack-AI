@@ -10,21 +10,10 @@ import MentalHealthInfo from "@/features/dashboard/components/MentalHealthInfo";
 import StrugglingButton from "@/features/crisis/components/StrugglingButton";
 import { HistoryItem } from "@/features/dashboard/types/history.types";
 import { useEffect, useState, useCallback } from "react";
-import { MentalState, AnalysisResponse } from "@/features/posts/types/post.types";
+import { AnalysisResponse } from "@/features/posts/types/post.types";
 import { api } from "@/lib/axios";
 import { useTranslation } from "@/hooks/useTranslation";
 import CounselorAlertBanner from "@/features/counselor-alert/components/CounselorAlertBanner";
-
-interface AnalysisDocument {
-  _id: string;
-  text: string;
-  prediction: string;
-  confidence: number;
-  explanation: string[];
-  createdAt: string;
-  updatedAt: string;
-  userId: string;
-}
 
 export default function DashboardPage() {
   const user = useRequireAuth();
@@ -41,19 +30,22 @@ export default function DashboardPage() {
     setError(null);
     
     try {
-      const res = await api.get<AnalysisDocument[]>("/analysis");
+      const res = await api.get<AnalysisResponse[]>("/analysis");
       const data = res.data;
 
       const mapped: HistoryItem[] = data.map((item) => ({
-        id: item._id,
-        text: item.text,
-        prediction: item.prediction as MentalState,
+        id: item._id!,
+        text: item.text!,
+        prediction: item.prediction,
         confidence: item.confidence,
         explanation: item.explanation,
-        createdAt: item.createdAt,
+        createdAt: item.createdAt!,
+        // Include mlData if needed for history view
+        mlData: item.mlData,
       }));
       setHistory(mapped);
-    } catch {
+    } catch (err) {
+      console.error("Error fetching history:", err);
       setError("Could not load analysis history.");
     } finally {
       setLoading(false);

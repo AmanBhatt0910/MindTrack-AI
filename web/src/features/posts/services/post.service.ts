@@ -9,4 +9,9 @@ export const postService = {
     const res = await api.post("/analysis", { text, language });
     return res.data;
   },
+  
+  getHistory: async (): Promise<AnalysisResponse[]> => {
+    const res = await api.get("/analysis");
+    return res.data;
+  },
 };

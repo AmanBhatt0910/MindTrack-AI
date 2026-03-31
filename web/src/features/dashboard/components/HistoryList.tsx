@@ -1,13 +1,16 @@
 "use client";
 
 import { useState } from "react";
-import { Search, Clock, ChevronRight, FileText } from "lucide-react";
+import { Search, Clock, ChevronRight, FileText, BarChart3, Info } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
 import { HistoryItem } from "../types/history.types";
 import Badge from "@/components/ui/Badge";
 import Input from "@/components/ui/Input";
 import { PREDICTION_VARIANT } from "@/constants/dashboard";
+
+// Define the prediction variant type
+type PredictionVariant = "danger" | "warning" | "success" | "default";
 
 // ─── Empty state ──────────────────────────────────────────────────────────────
 function EmptyHistory({ hasQuery }: { hasQuery: boolean }) {
@@ -24,6 +27,22 @@ function EmptyHistory({ hasQuery }: { hasQuery: boolean }) {
   );
 }
 
+// Helper function to get confidence color
+const getConfidenceColor = (confidence: number) => {
+  if (confidence >= 0.7) return "text-green-500";
+  if (confidence >= 0.4) return "text-yellow-500";
+  if (confidence >= 0.2) return "text-orange-500";
+  return "text-red-500";
+};
+
+// Helper function to get bar color
+const getBarColor = (confidence: number) => {
+  if (confidence >= 0.7) return "bg-green-500";
+  if (confidence >= 0.4) return "bg-yellow-500";
+  if (confidence >= 0.2) return "bg-orange-500";
+  return "bg-red-500";
+};
+
 // ─── History row ──────────────────────────────────────────────────────────────
 interface HistoryRowProps {
   item: HistoryItem;
@@ -32,10 +51,14 @@ interface HistoryRowProps {
 function HistoryRow({ item }: HistoryRowProps) {
   const [open, setOpen] = useState(false);
 
-  const badgeVariant = (PREDICTION_VARIANT[item.prediction] ?? "default") as
-    "danger" | "warning" | "success" | "default";
-
+  const badgeVariant = (PREDICTION_VARIANT[item.prediction] ?? "default") as PredictionVariant;
   const confidencePct = Math.round(item.confidence * 100);
+  const confidenceColor = getConfidenceColor(item.confidence);
+  
+  // Check if there are any significant detections
+  const hasSignificantDetections = item.mlData?.allPredictions?.some(
+    (pred) => pred.confidence > 0.3
+  ) ?? false;
 
   return (
     <motion.div layout>
@@ -78,7 +101,7 @@ function HistoryRow({ item }: HistoryRowProps) {
         <div className="flex items-center gap-3 shrink-0">
           <Badge variant={badgeVariant}>{item.prediction}</Badge>
           <span
-            className="text-[11px] text-(--text-muted) w-10 text-right tabular-nums"
+            className={`text-[11px] w-10 text-right tabular-nums ${confidenceColor}`}
             style={{ fontFamily: "var(--font-mono)" }}
           >
             {confidencePct}%
@@ -103,13 +126,35 @@ function HistoryRow({ item }: HistoryRowProps) {
           >
             <div className="mt-3 rounded-md border border-(--border) bg-(--surface-raised) p-4 space-y-3">
               {/* Full text */}
-              <p className="text-sm text-(--text) whitespace-pre-wrap">
-                {item.text}
-              </p>
+              <div className="space-y-1">
+                <p className="text-xs text-(--text-muted)">Original Text:</p>
+                <p className="text-sm text-(--text) whitespace-pre-wrap">
+                  {item.text}
+                </p>
+              </div>
+
+              {/* Primary detection with confidence bar */}
+              <div className="space-y-2 pt-2">
+                <p className="text-xs text-(--text-muted)">Primary Detection:</p>
+                <div className="space-y-1">
+                  <div className="flex justify-between text-sm">
+                    <span className="font-medium text-(--text)">{item.prediction}</span>
+                    <span className={`text-xs ${confidenceColor}`}>
+                      {confidencePct}%
+                    </span>
+                  </div>
+                  <div className="w-full bg-(--surface) rounded-full h-1.5 overflow-hidden">
+                    <div
+                      className={`h-full rounded-full ${getBarColor(item.confidence)}`}
+                      style={{ width: `${item.confidence * 100}%` }}
+                    />
+                  </div>
+                </div>
+              </div>
 
               {/* Explanation */}
               {item.explanation?.length > 0 && (
-                <div className="space-y-1">
+                <div className="space-y-1 pt-2">
                   <p className="text-xs text-(--text-muted)">Explanation:</p>
                   <ul className="text-xs text-(--text-muted) list-disc pl-4 space-y-1">
                     {item.explanation.map((exp, i) => (
@@ -118,6 +163,57 @@ function HistoryRow({ item }: HistoryRowProps) {
                   </ul>
                 </div>
               )}
+
+              {/* All detections - Show all predictions if available */}
+              {item.mlData && item.mlData.allPredictions && item.mlData.allPredictions.length > 0 && (
+                <div className="space-y-2 pt-2 border-t border-(--border)">
+                  <div className="flex items-center gap-2">
+                    <BarChart3 size={12} className="text-(--text-muted)" />
+                    <p className="text-xs text-(--text-muted) font-medium">All Detections:</p>
+                  </div>
+                  <div className="space-y-1.5">
+                    {item.mlData.allPredictions.map((pred, idx) => {
+                      const isSignificant = pred.confidence > 0.3;
+                      return (
+                        <div key={idx} className="space-y-1">
+                          <div className="flex justify-between text-xs">
+                            <span className={`capitalize ${isSignificant ? 'text-(--text) font-medium' : 'text-(--text-muted)'}`}>
+                              {pred.label}
+                              {isSignificant && (
+                                <span className="ml-1 text-[10px] text-(--accent)">●</span>
+                              )}
+                            </span>
+                            <span className="text-(--text-muted) tabular-nums">
+                              {(pred.confidence * 100).toFixed(1)}%
+                            </span>
+                          </div>
+                          <div className="w-full bg-(--surface) rounded-full h-1 overflow-hidden">
+                            <div
+                              className={`h-full rounded-full ${getBarColor(pred.confidence)}`}
+                              style={{ width: `${pred.confidence * 100}%` }}
+                            />
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {/* Status indicator for no significant issues */}
+              {!hasSignificantDetections && item.prediction === "Neutral" && (
+                <div className="flex items-center gap-2 p-2 rounded-md bg-green-500/10 border border-green-500/20">
+                  <Info size={12} className="text-green-500 shrink-0" />
+                  <p className="text-xs text-green-600 dark:text-green-400">
+                    No significant mental health concerns detected
+                  </p>
+                </div>
+              )}
+
+              {/* Timestamp detail */}
+              <div className="pt-2 text-[10px] text-(--text-muted) border-t border-(--border)">
+                Analyzed on: {new Date(item.createdAt).toLocaleString()}
+              </div>
             </div>
           </motion.div>
         )}
@@ -127,7 +223,11 @@ function HistoryRow({ item }: HistoryRowProps) {
 }
 
 // ─── Main component ───────────────────────────────────────────────────────────
-export default function HistoryList({ data }: { data: HistoryItem[] }) {
+interface HistoryListProps {
+  data: HistoryItem[];
+}
+
+export default function HistoryList({ data }: HistoryListProps) {
   const [query, setQuery] = useState("");
 
   const filtered = data.filter(

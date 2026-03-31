@@ -1,178 +1,135 @@
-// src/features/dashboard/components/AnalysisChart.tsx
 "use client";
 
-import {
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
-} from "recharts";
+import { useMemo } from "react";
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from "recharts";
 import { HistoryItem } from "../types/history.types";
-import { MentalState } from "@/features/posts/types/post.types";
 
 interface AnalysisChartProps {
   history: HistoryItem[];
 }
 
-// Type for a single data point in the chart
-interface ChartDataPoint {
-  day: string; // e.g., "03-24"
-  Depression: number;
-  Anxiety: number;
-  Neutral: number;
-  Bipolar: number;
-  Stress: number;
-}
+const COLORS: Record<string, string> = {
+  Anxiety: "#eab308",
+  Depression: "#8b5cf6",
+  Stress: "#f97316",
+  Bipolar: "#ec4899",
+  Neutral: "#22c55e",
+};
 
-// Type for the custom tooltip props (as received by recharts)
-interface CustomTooltipProps {
-  active?: boolean;
-  payload?: Array<{
-    name: string;
-    value: number;
-    color: string;
-    dataKey: string;
-  }>;
-  label?: string;
-}
-
-// Helper to get last 7 days (including today) in YYYY-MM-DD format
-function getLast7Days(): string[] {
-  const days: string[] = [];
-  for (let i = 6; i >= 0; i--) {
-    const d = new Date();
-    d.setDate(d.getDate() - i);
-    days.push(d.toISOString().slice(0, 10));
-  }
-  return days;
-}
-
-// Count occurrences per day and mental state
-function computeChartData(history: HistoryItem[]): ChartDataPoint[] {
-  const days = getLast7Days();
-  const initial: Record<string, ChartDataPoint> = days.reduce((acc, day) => {
-    acc[day] = {
-      day: day.slice(5), // show "MM-DD"
-      Depression: 0,
-      Anxiety: 0,
-      Neutral: 0,
-      Bipolar: 0,
-      Stress: 0,
-    };
-    return acc;
-  }, {} as Record<string, ChartDataPoint>);
-
-  history.forEach((item) => {
-    const date = new Date(item.createdAt).toISOString().slice(0, 10);
-    if (initial[date]) {
-      // Safely increment the count for the prediction key
-      const predictionKey = item.prediction as keyof ChartDataPoint;
-      // TypeScript knows that ChartDataPoint has all mental states as keys,
-      // so this is safe if item.prediction is one of those.
-      // We cast the property value to number because it's definitely a number.
-      (initial[date][predictionKey] as number) += 1;
-    }
-  });
-
-  return Object.values(initial).sort((a, b) => a.day.localeCompare(b.day));
-}
-
-// Custom tooltip with proper typing
-function CustomTooltip({ active, payload, label }: CustomTooltipProps) {
-  if (!active || !payload?.length) return null;
-
-  return (
-    <div
-      className="rounded-[var(--radius-md)] border border-[var(--border)] p-3 text-xs space-y-1"
-      style={{ background: "var(--surface-raised)", fontFamily: "var(--font-mono)" }}
-    >
-      <p className="text-[var(--text-secondary)] mb-2 font-medium">{label}</p>
-      {payload.map((p) => (
-        <div key={p.dataKey} className="flex items-center gap-2">
-          <span className="size-2 rounded-full shrink-0" style={{ background: p.color }} />
-          <span className="text-[var(--text-muted)]">{p.name}</span>
-          <span className="text-[var(--text)] font-medium ml-auto pl-4">{p.value}</span>
-        </div>
-      ))}
-    </div>
-  );
-}
-
-// Legend dot component
-function LegendDot({ color, label }: { color: string; label: string }) {
-  return (
-    <span className="inline-flex items-center gap-1.5 text-xs text-[var(--text-muted)]">
-      <span className="size-2 rounded-full" style={{ background: color }} />
-      {label}
-    </span>
-  );
-}
-
-// Color mapping for mental states
-const CHART_COLORS: Record<MentalState, string> = {
-  Depression: "#ef4444", // red-500
-  Anxiety: "#f59e0b", // amber-500
-  Neutral: "#10b981", // emerald-500
-  Bipolar: "#8b5cf6", // violet-500
-  Stress: "#f97316", // orange-500
+// Custom label renderer for Pie chart
+const renderCustomLabel = (entry: { name?: string; percent?: number }) => {
+  const { name, percent } = entry;
+  if (!name || percent === undefined) return null;
+  return `${name} (${(percent * 100).toFixed(0)}%)`;
 };
 
 export default function AnalysisChart({ history }: AnalysisChartProps) {
-  const data = computeChartData(history);
+  // Use useMemo for derived data
+  const { chartData, pieData } = useMemo(() => {
+    // Count occurrences of each prediction
+    const counts: Record<string, number> = {};
+    history.forEach((item) => {
+      counts[item.prediction] = (counts[item.prediction] || 0) + 1;
+    });
+
+    const barData = Object.entries(counts).map(([name, count]) => ({ name, count }));
+    const pieChartData = Object.entries(counts).map(([name, value]) => ({ name, value }));
+    
+    return { chartData: barData, pieData: pieChartData };
+  }, [history]);
+
+  if (history.length === 0) {
+    return (
+      <div className="rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)] p-6 text-center">
+        <p className="text-sm text-[var(--text-muted)]">No data available yet. Analyze some posts to see charts!</p>
+      </div>
+    );
+  }
 
   return (
-    <div className="rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)] p-6">
-      <div className="flex items-start justify-between mb-6">
-        <div>
-          <h2 className="text-sm font-semibold text-[var(--text)] tracking-[-0.01em]">
-            Signal breakdown
-          </h2>
-          <p className="text-xs text-[var(--text-muted)] mt-0.5">
-            Analyses by category, last 7 days
-          </p>
+    <div className="space-y-4">
+      <div className="flex items-center gap-2">
+        <div className="size-1.5 rounded-full bg-(--accent) pulse-dot" aria-hidden />
+        <h2 className="text-sm font-semibold text-(--text) tracking-[-0.01em]">
+          Analysis Overview
+        </h2>
+      </div>
+      
+      <div className="grid gap-6 md:grid-cols-2">
+        {/* Bar Chart */}
+        <div className="rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)] p-4">
+          <h3 className="text-sm font-medium text-[var(--text)] mb-4">Detection Frequency</h3>
+          <ResponsiveContainer width="100%" height={300}>
+            <BarChart data={chartData}>
+              <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
+              <XAxis dataKey="name" stroke="var(--text-muted)" fontSize={12} />
+              <YAxis stroke="var(--text-muted)" fontSize={12} />
+              <Tooltip
+                contentStyle={{
+                  backgroundColor: "var(--surface)",
+                  border: "1px solid var(--border)",
+                  borderRadius: "8px",
+                  color: "var(--text)",
+                }}
+                formatter={(value, name) => {
+                  // Type guard to ensure value is a number
+                  const count = typeof value === 'number' ? value : 0;
+                  return [`${count} times`, name];
+                }}
+              />
+              <Bar dataKey="count" fill="var(--accent)" radius={[4, 4, 0, 0]}>
+                {chartData.map((entry, index) => (
+                  <Cell 
+                    key={`cell-${index}`} 
+                    fill={COLORS[entry.name] || "var(--accent)"} 
+                  />
+                ))}
+              </Bar>
+            </BarChart>
+          </ResponsiveContainer>
         </div>
-        <div className="flex flex-wrap gap-3">
-          {(Object.entries(CHART_COLORS) as [MentalState, string][]).map(([key, color]) => (
-            <LegendDot key={key} color={color} label={key} />
-          ))}
+
+        {/* Pie Chart */}
+        <div className="rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)] p-4">
+          <h3 className="text-sm font-medium text-[var(--text)] mb-4">Distribution</h3>
+          <ResponsiveContainer width="100%" height={300}>
+            <PieChart>
+              <Pie
+                data={pieData}
+                cx="50%"
+                cy="50%"
+                labelLine={false}
+                label={renderCustomLabel}
+                outerRadius={80}
+                fill="#8884d8"
+                dataKey="value"
+                nameKey="name"
+              >
+                {pieData.map((entry, index) => (
+                  <Cell 
+                    key={`cell-${index}`} 
+                    fill={COLORS[entry.name] || "var(--accent)"} 
+                  />
+                ))}
+              </Pie>
+              <Tooltip
+                contentStyle={{
+                  backgroundColor: "var(--surface)",
+                  border: "1px solid var(--border)",
+                  borderRadius: "8px",
+                  color: "var(--text)",
+                }}
+                formatter={(value, name) => {
+                  // Type guard to ensure value is a number
+                  const count = typeof value === 'number' ? value : 0;
+                  return [`${count} times`, name];
+                }}
+              />
+              <Legend />
+            </PieChart>
+          </ResponsiveContainer>
         </div>
       </div>
-
-      <ResponsiveContainer width="100%" height={220}>
-        <BarChart data={data} barCategoryGap="30%" barGap={2}>
-          <CartesianGrid
-            vertical={false}
-            stroke="rgba(255,255,255,0.05)"
-            strokeDasharray="4 4"
-          />
-          <XAxis
-            dataKey="day"
-            tick={{ fill: "var(--text-muted)", fontSize: 11, fontFamily: "var(--font-mono)" }}
-            axisLine={false}
-            tickLine={false}
-          />
-          <YAxis
-            tick={{ fill: "var(--text-muted)", fontSize: 11, fontFamily: "var(--font-mono)" }}
-            axisLine={false}
-            tickLine={false}
-            width={24}
-            allowDecimals={false}
-          />
-          <Tooltip content={<CustomTooltip />} cursor={{ fill: "rgba(255,255,255,0.03)" }} />
-          {(Object.entries(CHART_COLORS) as [MentalState, string][]).map(([key, color]) => (
-            <Bar
-              key={key}
-              dataKey={key}
-              fill={color}
-              radius={[3, 3, 0, 0]}
-              fillOpacity={0.85}
-            />
-          ))}
-        </BarChart>
-      </ResponsiveContainer>
     </div>
   );
 }
