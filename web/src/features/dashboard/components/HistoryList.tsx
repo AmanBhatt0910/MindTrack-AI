@@ -30,56 +30,98 @@ interface HistoryRowProps {
 }
 
 function HistoryRow({ item }: HistoryRowProps) {
+  const [open, setOpen] = useState(false);
+
   const badgeVariant = (PREDICTION_VARIANT[item.prediction] ?? "default") as
     "danger" | "warning" | "success" | "default";
+
   const confidencePct = Math.round(item.confidence * 100);
 
   return (
-    <motion.div
-      layout
-      initial={{ opacity: 0, y: 8 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: -4 }}
-      transition={{ duration: 0.25 }}
-      className="group flex items-center gap-4 px-4 py-3 rounded-md
-                 border border-(--border) bg-(--surface)
-                 hover:border-(--border-active) hover:bg-(--surface-raised)
-                 transition-all duration-150 cursor-pointer"
-    >
-      {/* Icon */}
-      <div className="size-8 rounded-sm) bg-(--surface-raised)
-                      border border-(--border) flex items-center justify-center shrink-0">
-        <FileText size={13} className="text-(--text-muted)" />
-      </div>
+    <motion.div layout>
+      {/* Clickable header */}
+      <div
+        onClick={() => setOpen((prev) => !prev)}
+        className="group flex items-center gap-4 px-4 py-3 rounded-md
+                   border border-(--border) bg-(--surface)
+                   hover:border-(--border-active) hover:bg-(--surface-raised)
+                   transition-all duration-150 cursor-pointer"
+      >
+        {/* Icon */}
+        <div className="size-8 rounded-sm bg-(--surface-raised)
+                        border border-(--border) flex items-center justify-center shrink-0">
+          <FileText size={13} className="text-(--text-muted)" />
+        </div>
 
-      {/* Text */}
-      <div className="flex-1 min-w-0">
-        <p className="text-sm text-(--text) line-clamp-1">{item.text}</p>
-        <div className="flex items-center gap-2 mt-1">
-          <Clock size={10} className="text-(--text-muted) shrink-0" />
-          <span className="text-[11px] text-(--text-muted)"
-                style={{ fontFamily: "var(--font-mono)" }}>
-            {new Date(item.createdAt).toLocaleDateString("en-US", {
-              month: "short", day: "numeric", hour: "2-digit", minute: "2-digit",
-            })}
+        {/* Text */}
+        <div className="flex-1 min-w-0">
+          <p className="text-sm text-(--text) line-clamp-1">
+            {item.text}
+          </p>
+          <div className="flex items-center gap-2 mt-1">
+            <Clock size={10} className="text-(--text-muted)" />
+            <span
+              className="text-[11px] text-(--text-muted)"
+              style={{ fontFamily: "var(--font-mono)" }}
+            >
+              {new Date(item.createdAt).toLocaleDateString("en-US", {
+                month: "short",
+                day: "numeric",
+                hour: "2-digit",
+                minute: "2-digit",
+              })}
+            </span>
+          </div>
+        </div>
+
+        {/* Right */}
+        <div className="flex items-center gap-3 shrink-0">
+          <Badge variant={badgeVariant}>{item.prediction}</Badge>
+          <span
+            className="text-[11px] text-(--text-muted) w-10 text-right tabular-nums"
+            style={{ fontFamily: "var(--font-mono)" }}
+          >
+            {confidencePct}%
           </span>
+          <ChevronRight
+            size={13}
+            className={`text-(--text-muted) transition-transform ${
+              open ? "rotate-90" : ""
+            }`}
+          />
         </div>
       </div>
 
-      {/* Right: badge + confidence + chevron */}
-      <div className="flex items-center gap-3 shrink-0">
-        <Badge variant={badgeVariant}>{item.prediction}</Badge>
-        <span
-          className="text-[11px] text-(--text-muted) w-10 text-right tabular-nums"
-          style={{ fontFamily: "var(--font-mono)" }}
-        >
-          {confidencePct}%
-        </span>
-        <ChevronRight
-          size={13}
-          className="text-(--text-muted) opacity-0 group-hover:opacity-100 transition-opacity"
-        />
-      </div>
+      {/* Expanded content */}
+      <AnimatePresence>
+        {open && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: "auto" }}
+            exit={{ opacity: 0, height: 0 }}
+            className="px-4 pb-4"
+          >
+            <div className="mt-3 rounded-md border border-(--border) bg-(--surface-raised) p-4 space-y-3">
+              {/* Full text */}
+              <p className="text-sm text-(--text) whitespace-pre-wrap">
+                {item.text}
+              </p>
+
+              {/* Explanation */}
+              {item.explanation?.length > 0 && (
+                <div className="space-y-1">
+                  <p className="text-xs text-(--text-muted)">Explanation:</p>
+                  <ul className="text-xs text-(--text-muted) list-disc pl-4 space-y-1">
+                    {item.explanation.map((exp, i) => (
+                      <li key={i}>{exp}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </motion.div>
   );
 }
