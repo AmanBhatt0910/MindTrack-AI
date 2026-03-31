@@ -13,6 +13,7 @@ import { useEffect, useState, useCallback } from "react";
 import { MentalState, AnalysisResponse } from "@/features/posts/types/post.types";
 import { api } from "@/lib/axios";
 import { useTranslation } from "@/hooks/useTranslation";
+import CounselorAlertBanner from "@/features/counselor-alert/components/CounselorAlertBanner";
 
 interface AnalysisDocument {
   _id: string;
@@ -52,7 +53,7 @@ export default function DashboardPage() {
         createdAt: item.createdAt,
       }));
       setHistory(mapped);
-    } catch (err) {
+    } catch {
       setError("Could not load analysis history.");
     } finally {
       setLoading(false);
@@ -106,6 +107,9 @@ export default function DashboardPage() {
         </div>
 
         <StatsCards history={history} />
+        {currentAnalysis && (
+          <CounselorAlertBanner analysis={currentAnalysis} />
+        )}
         <PostAnalyzer 
           onAnalysisComplete={handleAnalysisComplete}
           initialResult={currentAnalysis}

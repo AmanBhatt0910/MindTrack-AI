@@ -4,11 +4,11 @@
 import { useEffect } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { X, Brain } from "lucide-react";
+import { X, Brain, LayoutDashboard, FileText, History, Settings, Users, MapPin, Bell, Smile } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { clsx } from "clsx";
-import { SIDEBAR_NAV } from "@/constants/dashboard";
 import { useAuthStore } from "@/store/useAuthStore";
+import { useTranslation } from "@/hooks/useTranslation";
 
 interface MobileSidebarProps {
   isOpen: boolean;
@@ -19,6 +19,18 @@ export default function MobileSidebar({ isOpen, onClose }: MobileSidebarProps) {
   const pathname = usePathname();
   const router = useRouter();
   const { user, logout } = useAuthStore();
+  const { t } = useTranslation();
+
+  const NAV_ITEMS = [
+    { label: t("overview"), href: "/dashboard", icon: LayoutDashboard },
+    { label: t("analyze"), href: "/dashboard#analyzer", icon: FileText },
+    { label: t("history"), href: "/dashboard#history", icon: History },
+    { label: t("counselling"), href: "/counselling", icon: Users },
+    { label: t("nearby"), href: "/nearby", icon: MapPin },
+    { label: t("moodTracker"), href: "/mood", icon: Smile },
+    { label: t("reminders"), href: "/reminders", icon: Bell },
+    { label: t("settings"), href: "/settings", icon: Settings },
+  ] as const;
 
   // Lock body scroll when menu is open
   useEffect(() => {
@@ -84,10 +96,10 @@ export default function MobileSidebar({ isOpen, onClose }: MobileSidebarProps) {
 
             {/* Navigation */}
             <nav className="flex-1 px-3 py-4 space-y-0.5">
-              {SIDEBAR_NAV.map(({ label, href, icon: Icon }) => {
+              {NAV_ITEMS.map(({ label, href, icon: Icon }) => {
                 const isActive =
                   pathname === href ||
-                  (href !== "/dashboard" && pathname.startsWith(href));
+                  (href !== "/dashboard" && !href.includes("#") && pathname.startsWith(href));
 
                 return (
                   <Link

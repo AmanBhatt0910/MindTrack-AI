@@ -3,9 +3,9 @@
 import { useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { Brain, ChevronDown, ChevronRight, LayoutDashboard, FileText, History, Settings, Users } from "lucide-react";
+import { Brain, ChevronDown, ChevronRight, LayoutDashboard, FileText, History, Settings, Users, MapPin, Bell, Smile } from "lucide-react";
 import { clsx } from "clsx";
-import { SIDEBAR_NAV, SETTINGS_SUBMENU } from "@/constants/dashboard";
+import { SETTINGS_SUBMENU } from "@/constants/dashboard";
 import { useAuthStore } from "@/store/useAuthStore";
 import { useTranslation } from "@/hooks/useTranslation";
 import LanguageToggle from "@/components/shared/LanguageToggle";
@@ -36,6 +36,9 @@ export default function Sidebar() {
     { label: t("analyze"), href: "/dashboard#analyzer", icon: FileText },
     { label: t("history"), href: "/dashboard#history", icon: History },
     { label: t("counselling"), href: "/counselling", icon: Users },
+    { label: t("nearby"), href: "/nearby", icon: MapPin },
+    { label: t("moodTracker"), href: "/mood", icon: Smile },
+    { label: t("reminders"), href: "/reminders", icon: Bell },
     { label: t("settings"), href: "/settings", icon: Settings },
   ] as const;
 
