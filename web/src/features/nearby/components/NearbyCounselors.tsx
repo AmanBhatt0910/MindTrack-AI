@@ -1,55 +1,14 @@
 "use client";
 
-import { useMemo } from "react";
+import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { MapPin, Navigation, Star, ExternalLink, Filter, Map, List, Loader2, AlertCircle, RefreshCw } from "lucide-react";
 import { useTranslation } from "@/hooks/useTranslation";
 import { useLocation } from "@/hooks/useLocation";
-import { COUNSELLORS } from "@/constants/counsellors";
-import { useState } from "react";
+import { fetchNearbyTherapists } from "@/services/therapistService";
+import type { TherapistWithDistance } from "@/types/therapist.types";
 
 type DistanceFilter = "5" | "10" | "25" | "any";
-
-interface CounsellorWithDistance {
-  id: string;
-  name: string;
-  specialty: string[];
-  experience: string;
-  language: string[];
-  rating: number;
-  reviews: number;
-  available: boolean;
-  nextSlot: string;
-  fee: string;
-  avatar: string;
-  bio: string;
-  distance: number; // km (simulated)
-  lat: number;
-  lng: number;
-}
-
-// Simulate distances from user location
-function assignDistances(lat: number, lng: number): CounsellorWithDistance[] {
-  // Simulate counselors at nearby locations (real implementation would use geocoding API)
-  const offsets = [
-    { dlat: 0.02, dlng: 0.03, base: 2.8 },
-    { dlat: -0.05, dlng: 0.01, base: 5.4 },
-    { dlat: 0.08, dlng: -0.04, base: 8.7 },
-    { dlat: -0.01, dlng: 0.07, base: 7.2 },
-    { dlat: 0.12, dlng: 0.09, base: 14.3 },
-    { dlat: -0.09, dlng: -0.06, base: 10.8 },
-  ];
-
-  return COUNSELLORS.map((c, i) => {
-    const offset = offsets[i % offsets.length];
-    return {
-      ...c,
-      distance: parseFloat((offset.base + Math.random() * 2).toFixed(1)),
-      lat: lat + offset.dlat,
-      lng: lng + offset.dlng,
-    };
-  }).sort((a, b) => a.distance - b.distance);
-}
 
 // Fallback coordinates (geographic center of India) used only when location
 // is unavailable, so the map still renders something sensible.
@@ -61,20 +20,43 @@ export default function NearbyCounselors() {
   const [distanceFilter, setDistanceFilter] = useState<DistanceFilter>("any");
   const [viewMode, setViewMode] = useState<"list" | "map">("list");
 
+  const [counselors, setCounselors] = useState<TherapistWithDistance[]>([]);
+  const [fetchLoading, setFetchLoading] = useState(false);
+  const [fetchError, setFetchError] = useState<string | null>(null);
+
   const activeLoc =
     latitude !== null && longitude !== null
       ? { lat: latitude, lng: longitude }
       : INDIA_CENTER;
 
-  // Compute counselors with distances derived from active location
-  const counselors = useMemo(
-    () => assignDistances(activeLoc.lat, activeLoc.lng),
-    [activeLoc.lat, activeLoc.lng]
-  );
+  // Fetch real therapists from the API whenever the user's location is known
+  useEffect(() => {
+    let cancelled = false;
+
+    async function load() {
+      setFetchLoading(true);
+      setFetchError(null);
+      try {
+        const data = await fetchNearbyTherapists({
+          lat: activeLoc.lat,
+          lng: activeLoc.lng,
+          radius: 100, // 100 km covers the local region; UI filters narrow further
+        });
+        if (!cancelled) setCounselors(data);
+      } catch {
+        if (!cancelled) setFetchError("Could not load therapists. Please try again.");
+      } finally {
+        if (!cancelled) setFetchLoading(false);
+      }
+    }
+
+    load();
+    return () => { cancelled = true; };
+  }, [activeLoc.lat, activeLoc.lng]);
 
   const filtered = counselors.filter((c) => {
     if (distanceFilter === "any") return true;
-    return c.distance <= parseInt(distanceFilter);
+    return c.distanceKm <= parseInt(distanceFilter);
   });
 
   const DISTANCE_FILTERS: { value: DistanceFilter; labelKey: string }[] = [
@@ -172,16 +154,28 @@ export default function NearbyCounselors() {
         </div>
       </div>
 
-      {/* Results count */}
-      <p className="text-xs text-[var(--text-muted)]">
-        {filtered.length} {t("counselorsFound")}
-        {distanceFilter !== "any" ? ` ${t("withinDistance")} ${distanceFilter} km` : ""}
-        {status === "idle" && (
-          <span className="ml-1 text-[var(--text-muted)] italic">
-            ({t("allowLocationPrompt")})
-          </span>
-        )}
-      </p>
+      {/* Results count / loading / error */}
+      {fetchLoading ? (
+        <p className="flex items-center gap-2 text-xs text-[var(--text-muted)]">
+          <Loader2 size={12} className="animate-spin" />
+          Loading therapists…
+        </p>
+      ) : fetchError ? (
+        <div className="flex items-center gap-2 text-xs text-rose-400">
+          <AlertCircle size={12} />
+          {fetchError}
+        </div>
+      ) : (
+        <p className="text-xs text-[var(--text-muted)]">
+          {filtered.length} {t("counselorsFound")}
+          {distanceFilter !== "any" ? ` ${t("withinDistance")} ${distanceFilter} km` : ""}
+          {status === "idle" && (
+            <span className="ml-1 text-[var(--text-muted)] italic">
+              ({t("allowLocationPrompt")})
+            </span>
+          )}
+        </p>
+      )}
 
       {/* Map view */}
       <AnimatePresence mode="wait">
@@ -193,7 +187,7 @@ export default function NearbyCounselors() {
             exit={{ opacity: 0 }}
             className="rounded-[var(--radius-lg)] overflow-hidden border border-[var(--border)]"
           >
-            {/* OpenStreetMap embed with counselor location */}
+            {/* OpenStreetMap embed centred on the active location */}
             <div className="relative h-[400px]">
               <iframe
                 src={`https://www.openstreetmap.org/export/embed.html?bbox=${
@@ -209,14 +203,14 @@ export default function NearbyCounselors() {
                 title="Counselor locations map"
                 loading="lazy"
               />
-              {/* Overlay with counselor pins info */}
+              {/* Overlay listing nearest therapists */}
               <div className="absolute top-3 right-3 bg-[var(--surface-overlay)] backdrop-blur-sm rounded-[var(--radius-md)] border border-[var(--border)] p-3 max-w-[200px]">
                 <p className="text-xs font-medium text-[var(--text)] mb-2">{filtered.length} {t("nearby")}</p>
                 {filtered.slice(0, 3).map((c) => (
                   <div key={c.id} className="flex items-center gap-1.5 py-1">
                     <MapPin size={10} className="text-[var(--accent)] shrink-0" />
                     <span className="text-[11px] text-[var(--text-secondary)] truncate">{c.name}</span>
-                    <span className="text-[10px] text-[var(--text-muted)] shrink-0">{c.distance}km</span>
+                    <span className="text-[10px] text-[var(--text-muted)] shrink-0">{c.distanceKm}km</span>
                   </div>
                 ))}
               </div>
@@ -225,7 +219,7 @@ export default function NearbyCounselors() {
         )}
 
         {/* List view */}
-        {viewMode === "list" && (
+        {viewMode === "list" && !fetchLoading && (
           <motion.div
             key="list"
             initial={{ opacity: 0 }}
@@ -251,7 +245,7 @@ export default function NearbyCounselors() {
                     <div className="flex items-center gap-1.5 mt-0.5">
                       <MapPin size={10} className="text-[var(--accent)] shrink-0" />
                       <span className="text-xs text-[var(--accent)] font-medium">
-                        {counselor.distance} {t("kmAway")}
+                        {counselor.distanceKm} {t("kmAway")}
                       </span>
                     </div>
                   </div>
@@ -269,7 +263,7 @@ export default function NearbyCounselors() {
 
                 {/* Specialties */}
                 <div className="flex flex-wrap gap-1.5">
-                  {counselor.specialty.map((s) => (
+                  {counselor.specializations.map((s) => (
                     <span
                       key={s}
                       className="px-2 py-0.5 rounded-full text-[10px] bg-[var(--surface-raised)] text-[var(--text-muted)] border border-[var(--border)]"
@@ -292,7 +286,7 @@ export default function NearbyCounselors() {
                 {/* Actions */}
                 <div className="flex gap-2">
                   <a
-                    href={`https://www.google.com/maps/dir/?api=1&destination=${counselor.lat},${counselor.lng}`}
+                    href={`https://www.google.com/maps/dir/?api=1&destination=${counselor.coordinates.lat},${counselor.coordinates.lng}`}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-[var(--radius-md)] text-xs
@@ -303,7 +297,7 @@ export default function NearbyCounselors() {
                     {t("getDirections")}
                   </a>
                   <a
-                    href={`https://www.openstreetmap.org/?mlat=${counselor.lat}&mlon=${counselor.lng}&zoom=15`}
+                    href={`https://www.openstreetmap.org/?mlat=${counselor.coordinates.lat}&mlon=${counselor.coordinates.lng}&zoom=15`}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="flex items-center justify-center px-3 py-2 rounded-[var(--radius-md)] text-xs
@@ -320,7 +314,7 @@ export default function NearbyCounselors() {
         )}
       </AnimatePresence>
 
-      {filtered.length === 0 && (
+      {!fetchLoading && filtered.length === 0 && !fetchError && (
         <div className="flex flex-col items-center justify-center py-16 gap-3 text-center">
           <AlertCircle size={24} className="text-[var(--text-muted)]" />
           <p className="text-sm text-[var(--text-muted)]">

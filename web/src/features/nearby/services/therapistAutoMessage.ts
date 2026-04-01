@@ -1,4 +1,5 @@
 import { AnalysisResponse, MentalState } from "@/features/posts/types/post.types";
+import { haversineDistance } from "@/services/locationService";
 
 export interface NearbyTherapist {
   id: string;
@@ -12,6 +13,8 @@ export interface NearbyTherapist {
   available: boolean;
   nextAvailable: string;
   avatar: string;
+  /** Real clinic coordinates used for Haversine distance calculation */
+  coordinates: { lat: number; lng: number };
 }
 
 // High-risk states that trigger therapist auto-message
@@ -53,7 +56,12 @@ export function buildTherapistAlertMessage(
   );
 }
 
-const NEARBY_THERAPISTS: NearbyTherapist[] = [
+/**
+ * Base therapist records with real Mumbai-area clinic coordinates.
+ * Distances are calculated at runtime using the Haversine formula so they
+ * reflect the user's actual position instead of hard-coded values.
+ */
+const BASE_THERAPISTS: Omit<NearbyTherapist, "distanceKm">[] = [
   {
     id: "t1",
     name: "Dr. Meera Kapoor",
@@ -62,7 +70,7 @@ const NEARBY_THERAPISTS: NearbyTherapist[] = [
     phone: "+91 98200 11234",
     email: "dr.kapoor@mindwell.in",
     address: "12 Wellness Plaza, Andheri West, Mumbai",
-    distanceKm: 1.4,
+    coordinates: { lat: 19.1196, lng: 72.8468 },
     available: true,
     nextAvailable: "Today, 4:00 PM",
     avatar: "MK",
@@ -75,7 +83,7 @@ const NEARBY_THERAPISTS: NearbyTherapist[] = [
     phone: "+91 99876 54321",
     email: "dr.nair@healingminds.in",
     address: "8 Serenity Towers, Bandra East, Mumbai",
-    distanceKm: 2.1,
+    coordinates: { lat: 19.0607, lng: 72.853 },
     available: true,
     nextAvailable: "Today, 6:30 PM",
     avatar: "VN",
@@ -88,7 +96,7 @@ const NEARBY_THERAPISTS: NearbyTherapist[] = [
     phone: "+91 91234 67890",
     email: "pooja.desai@mindbridge.in",
     address: "3 Hope Lane, Powai, Mumbai",
-    distanceKm: 3.7,
+    coordinates: { lat: 19.1176, lng: 72.906 },
     available: false,
     nextAvailable: "Tomorrow, 10:00 AM",
     avatar: "PD",
@@ -102,27 +110,18 @@ export function getNearbyTherapists(
 ): NearbyTherapist[] {
   const prediction = analysis.prediction;
 
-  // If user coordinates are available, recalculate simulated distances
-  // based on the user's actual position.
-  const therapists: NearbyTherapist[] = userLat !== undefined && userLng !== undefined
-    ? NEARBY_THERAPISTS.map((t, i) => {
-        // Simple distance simulation using coordinate offsets
-        const offsets = [
-          { dlat: 0.01, dlng: 0.015 },
-          { dlat: -0.02, dlng: 0.01 },
-          { dlat: 0.03, dlng: -0.02 },
-        ];
-        const off = offsets[i % offsets.length];
-        const dlat = off.dlat;
-        const dlng = off.dlng;
-        const distanceKm = parseFloat(
-          // 111 km is the approximate distance per degree of latitude/longitude
-          // (rough estimate; does not account for Earth's curvature at different latitudes).
-          (Math.sqrt(dlat * dlat + dlng * dlng) * 111).toFixed(1)
-        );
-        return { ...t, distanceKm };
-      })
-    : [...NEARBY_THERAPISTS];
+  // Calculate real distances using the Haversine formula when user coordinates
+  // are available; fall back to a default origin (Mumbai city centre) otherwise
+  // so the component always has something to display.
+  const userCoords =
+    userLat !== undefined && userLng !== undefined
+      ? { lat: userLat, lng: userLng }
+      : { lat: 19.076, lng: 72.8777 }; // Mumbai city centre fallback
+
+  const therapists: NearbyTherapist[] = BASE_THERAPISTS.map((t) => ({
+    ...t,
+    distanceKm: haversineDistance(userCoords, t.coordinates),
+  }));
 
   return therapists.sort((a, b) => {
     const aMatch = a.specialization.includes(prediction) ? -1 : 0;
