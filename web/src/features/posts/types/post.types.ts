@@ -1,4 +1,4 @@
-export type MentalState = "Depression" | "Anxiety" | "Neutral" | "Bipolar" | "Stress";
+export type MentalState = "Depression" | "Anxiety" | "Neutral" | "Bipolar" | "Stress" | "Error";
 
 export interface Prediction {
   label: string;
@@ -20,6 +20,7 @@ export interface AnalysisResponse {
   confidence: number;
   explanation: string[];
   mlData?: MLData;
+  error?: string;
   createdAt?: string;
   updatedAt?: string;
   userId?: string;

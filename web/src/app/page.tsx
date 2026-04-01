@@ -13,7 +13,7 @@ export default function HomePage() {
   const user   = useAuthStore((s) => s.user);
 
   const handleStart = () => {
-    router.push(user ? "/dashboard" : "/login");
+    router.push(user ? "/mood" : "/login");
   };
 
   return (

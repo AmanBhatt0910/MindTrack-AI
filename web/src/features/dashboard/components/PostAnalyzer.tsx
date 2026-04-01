@@ -6,6 +6,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import PostInput from "@/features/posts/components/PostInput";
 import LanguageSelect from "@/features/posts/components/LanguageSelect";
 import AnalysisResult from "@/features/posts/components/AnalysisResult";
+import VoiceRecorder from "@/features/voice/components/VoiceRecorder";
 import Button from "@/components/ui/Button";
 import { postService } from "@/features/posts/services/post.service";
 import { AnalysisResponse } from "@/features/posts/types/post.types";
@@ -83,11 +84,21 @@ export default function PostAnalyzer({ onAnalysisComplete, initialResult = null 
     setError(null);
     try {
       const res = await postService.analyze(text, language);
-      setResult(res);
-      // Notify parent that analysis succeeded with the result
-      onAnalysisComplete?.(res);
-    } catch {
-      setError("Analysis failed. Please try again.");
+      // Check if the API returned an error in the response body
+      if (res.error) {
+        setError(res.error);
+        setResult(null);
+      } else {
+        setResult(res);
+        onAnalysisComplete?.(res);
+      }
+    } catch (err: unknown) {
+      const axiosErr = err as { response?: { data?: { error?: string; explanation?: string[] } } };
+      const msg = axiosErr?.response?.data?.error
+        || axiosErr?.response?.data?.explanation?.[0]
+        || "Analysis failed. Is the ML model server running?";
+      setError(msg);
+      setResult(null);
     } finally {
       setLoading(false);
     }
@@ -104,7 +115,15 @@ export default function PostAnalyzer({ onAnalysisComplete, initialResult = null 
                      bg-[var(--surface)] p-6 space-y-4"
         >
           <PostInput value={text} onChange={setText} />
-          <LanguageSelect value={language} onChange={setLanguage} />
+
+          {/* Voice input & language */}
+          <div className="flex items-center justify-between gap-4">
+            <VoiceRecorder
+              language={language}
+              onTranscript={(t) => setText((prev) => prev ? prev + " " + t : t)}
+            />
+            <LanguageSelect value={language} onChange={setLanguage} />
+          </div>
 
           {/* Error */}
           <AnimatePresence>

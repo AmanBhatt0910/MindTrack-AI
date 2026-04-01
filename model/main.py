@@ -22,7 +22,7 @@ app.add_middleware(
 
 # Get the correct model path
 current_dir = Path(__file__).parent.absolute()
-MODEL_PATH = current_dir / "final_mental_health_model"
+MODEL_PATH = current_dir / "mental_health_model"
 
 # Verify model exists
 if not MODEL_PATH.exists():

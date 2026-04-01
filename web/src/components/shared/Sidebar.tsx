@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { Brain, ChevronDown, ChevronRight, LayoutDashboard, FileText, History, Settings, Users, MapPin, Bell, Smile } from "lucide-react";
+import { Brain, ChevronDown, ChevronRight, LayoutDashboard, FileText, History, Settings, Users, MapPin, Bell, Smile, MessageCircle, TrendingUp, BookOpen } from "lucide-react";
 import { clsx } from "clsx";
 import { SETTINGS_SUBMENU } from "@/constants/dashboard";
 import { useAuthStore } from "@/store/useAuthStore";
@@ -38,6 +38,9 @@ export default function Sidebar() {
     { label: t("counselling"), href: "/counselling", icon: Users },
     { label: t("nearby"), href: "/nearby", icon: MapPin },
     { label: t("moodTracker"), href: "/mood", icon: Smile },
+    { label: t("chat"), href: "/chat", icon: MessageCircle },
+    { label: t("analytics"), href: "/analytics", icon: TrendingUp },
+    { label: t("blog"), href: "/blog", icon: BookOpen },
     { label: t("reminders"), href: "/reminders", icon: Bell },
     { label: t("settings"), href: "/settings", icon: Settings },
   ] as const;

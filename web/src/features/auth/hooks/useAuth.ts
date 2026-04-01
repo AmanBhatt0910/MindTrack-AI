@@ -17,7 +17,7 @@ export function useAuth() {
       localStorage.setItem("token", res.token);
       setAuth(res.user, res.token);
       toast.success("Login successful!");
-      router.push("/dashboard");
+      router.push("/mood");
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : "Login failed";
       toast.error(message);
@@ -33,7 +33,7 @@ export function useAuth() {
       localStorage.setItem("token", res.token);
       setAuth(res.user, res.token);
       toast.success("Account created!");
-      router.push("/dashboard");
+      router.push("/mood");
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : "Signup failed";
       toast.error(message);

@@ -14,6 +14,7 @@ import { AnalysisResponse } from "@/features/posts/types/post.types";
 import { api } from "@/lib/axios";
 import { useTranslation } from "@/hooks/useTranslation";
 import CounselorAlertBanner from "@/features/counselor-alert/components/CounselorAlertBanner";
+import RecommendationCards from "@/features/recommendations/components/RecommendationCards";
 
 export default function DashboardPage() {
   const user = useRequireAuth();
@@ -106,6 +107,7 @@ export default function DashboardPage() {
           onAnalysisComplete={handleAnalysisComplete}
           initialResult={currentAnalysis}
         />
+        <RecommendationCards />
         <AnalysisChart history={history} />
         <HistoryList data={history} />
         <MentalHealthInfo />

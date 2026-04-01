@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { connectDB } from "@/lib/db";
 import { Analysis } from "@/models/Analysis";
+import { EmotionSnapshot } from "@/models/EmotionSnapshot";
 import { verifyToken } from "@/lib/auth";
 
 // Define types for ML API response matching the new format
@@ -61,23 +62,62 @@ export async function POST(req: Request) {
 
     await connectDB();
 
+    const mlApiUrl = process.env.ML_API_URL;
+    if (!mlApiUrl) {
+      console.error("❌ ML_API_URL not configured in .env.local");
+      return NextResponse.json({
+        error: "ML API URL not configured",
+        prediction: "Error",
+        confidence: 0,
+        explanation: ["ML service is not configured. Set ML_API_URL in .env.local"],
+        mlData: null,
+      }, { status: 503 });
+    }
+
     console.log("📤 Sending to ML API:", { 
       text: text.substring(0, 100),
-      url: process.env.ML_API_URL 
+      url: mlApiUrl 
     });
 
-    const mlResponse = await fetch(`${process.env.ML_API_URL}/predict`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ text }),
-    });
+    // 15-second timeout for model inference
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 15000);
+
+    let mlResponse: Response;
+    try {
+      mlResponse = await fetch(`${mlApiUrl}/predict`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ text }),
+        signal: controller.signal,
+      });
+    } catch (fetchErr: unknown) {
+      clearTimeout(timeoutId);
+      const errMsg = fetchErr instanceof Error ? fetchErr.message : String(fetchErr);
+      console.error("❌ Cannot reach ML API:", errMsg);
+      return NextResponse.json({
+        error: `Cannot connect to ML service at ${mlApiUrl}. Is the model server running?`,
+        prediction: "Error",
+        confidence: 0,
+        explanation: [`ML service unreachable: ${errMsg}. Make sure uvicorn is running from the model/ directory.`],
+        mlData: null,
+      }, { status: 503 });
+    } finally {
+      clearTimeout(timeoutId);
+    }
 
     if (!mlResponse.ok) {
       const errorText = await mlResponse.text();
       console.error("ML API error:", errorText);
-      throw new Error(`ML API failed: ${mlResponse.status} - ${errorText}`);
+      return NextResponse.json({
+        error: `ML API returned ${mlResponse.status}`,
+        prediction: "Error",
+        confidence: 0,
+        explanation: [`ML service error: ${errorText}`],
+        mlData: null,
+      }, { status: 502 });
     }
 
     const mlData: MLDataResponse = await mlResponse.json();
@@ -177,16 +217,51 @@ export async function POST(req: Request) {
     // Save to database
     const saved = await Analysis.create(result);
 
+    // Create/update EmotionSnapshot for analytics
+    try {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+
+      const probs = mlData.probabilities;
+      const overall =
+        (probs.Anxiety || 0) * 0.25 +
+        (probs.Stress || 0) * 0.25 +
+        (probs.Depression || 0) * 0.3 +
+        (probs.Bipolar || 0) * 0.2;
+
+      await EmotionSnapshot.findOneAndUpdate(
+        { userId, date: today },
+        {
+          $set: {
+            sentimentScores: {
+              anxiety: probs.Anxiety || 0,
+              stress: probs.Stress || 0,
+              depression: probs.Depression || 0,
+              bipolar: probs.Bipolar || 0,
+              overall: Math.round(overall * 1000) / 1000,
+            },
+            source: "analysis",
+          },
+          $inc: { entryCount: 1 },
+        },
+        { upsert: true, new: true }
+      );
+    } catch (snapshotErr) {
+      console.error("⚠️ EmotionSnapshot error (non-fatal):", snapshotErr);
+    }
+
     return NextResponse.json(saved);
     
   } catch (error) {
     console.error("❌ Error in analysis route:", error);
+    const errMsg = error instanceof Error ? error.message : String(error);
     return NextResponse.json({
-      prediction: "Neutral",
+      error: `Analysis failed: ${errMsg}`,
+      prediction: "Error",
       confidence: 0,
-      explanation: ["Unable to analyze text. Please try again later."],
-      mlData: null
-    });
+      explanation: [`Analysis error: ${errMsg}`],
+      mlData: null,
+    }, { status: 500 });
   }
 }
 
