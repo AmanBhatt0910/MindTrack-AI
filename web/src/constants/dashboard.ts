@@ -98,6 +98,7 @@ export const PREDICTION_VARIANT = {
   Stress: "warning",
   Bipolar: "warning",
   Neutral: "success",
+  Error: "danger",
 } as const;
 
 // ─── Post analyzer copy ───────────────────────────────────────────────────────

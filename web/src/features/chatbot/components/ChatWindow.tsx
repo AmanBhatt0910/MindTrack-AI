@@ -12,7 +12,7 @@ import { useTranslation } from "@/hooks/useTranslation";
 import { CRISIS_RESOURCES } from "../types/chat.types";
 
 export default function ChatWindow() {
-  const { t } = useTranslation();
+  const { t, language } = useTranslation();
   const {
     sessions,
     activeSessionId,
@@ -62,6 +62,7 @@ export default function ChatWindow() {
         const response = await chatService.sendMessage({
           message: text,
           sessionHistory: history,
+          language,
         });
 
         const botMsg: ChatMessageType = {
@@ -85,7 +86,7 @@ export default function ChatWindow() {
         setTyping(false);
       }
     },
-    [addMessage, setTyping, getActiveSession, t]
+    [addMessage, setTyping, getActiveSession, t, language]
   );
 
   return (

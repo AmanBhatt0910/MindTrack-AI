@@ -19,6 +19,7 @@ export interface ChatSession {
 export interface ChatRequest {
   message: string;
   sessionHistory?: { role: MessageRole; content: string }[];
+  language?: string;
 }
 
 export interface ChatResponse {
@@ -26,6 +27,7 @@ export interface ChatResponse {
   source: MessageSource;
   isCrisis: boolean;
   crisisResources?: CrisisResource[];
+  detectedLanguage?: string;
 }
 
 export interface CrisisResource {
