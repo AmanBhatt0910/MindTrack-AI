@@ -15,6 +15,8 @@ import { api } from "@/lib/axios";
 import { useTranslation } from "@/hooks/useTranslation";
 import CounselorAlertBanner from "@/features/counselor-alert/components/CounselorAlertBanner";
 import RecommendationCards from "@/features/recommendations/components/RecommendationCards";
+import TherapistAutoMessageAlert from "@/features/nearby/components/TherapistAutoMessageAlert";
+import GamesAndMusicPanel from "@/features/recommendations/components/GamesAndMusicPanel";
 
 export default function DashboardPage() {
   const user = useRequireAuth();
@@ -103,11 +105,17 @@ export default function DashboardPage() {
         {currentAnalysis && (
           <CounselorAlertBanner analysis={currentAnalysis} />
         )}
+        {currentAnalysis && (
+          <TherapistAutoMessageAlert analysis={currentAnalysis} />
+        )}
         <PostAnalyzer 
           onAnalysisComplete={handleAnalysisComplete}
           initialResult={currentAnalysis}
         />
         <RecommendationCards />
+        {currentAnalysis && (
+          <GamesAndMusicPanel prediction={currentAnalysis.prediction} />
+        )}
         <AnalysisChart history={history} />
         <HistoryList data={history} />
         <MentalHealthInfo />
