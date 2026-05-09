@@ -26,11 +26,6 @@ export default function LoginForm() {
   const { login, loading } = useAuth();
   const { isRedirecting } = useAuthRedirect();
 
-  // Don't show form if redirecting
-  if (isRedirecting) {
-    return null;
-  }
-
   const {
     register,
     handleSubmit,
@@ -38,6 +33,11 @@ export default function LoginForm() {
   } = useForm<LoginInput>({
     resolver: zodResolver(loginSchema),
   });
+
+  // Don't show form if redirecting
+  if (isRedirecting) {
+    return null;
+  }
 
   return (
     <AuthFormWrapper

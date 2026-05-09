@@ -4,10 +4,20 @@ export class SoundEffects {
   private static audioCache: Record<string, HTMLAudioElement> = {};
   private static soundEnabled = true;
 
+  private static audioCtx: AudioContext | null = null;
+
   static init() {
     // Initialize sound settings from localStorage
     const stored = localStorage.getItem("sound-enabled");
     this.soundEnabled = stored !== null ? stored === "true" : true;
+    
+    // Initialize Web Audio API for synthetic fallbacks
+    try {
+      const AudioContext = window.AudioContext || (window as any).webkitAudioContext;
+      this.audioCtx = new AudioContext();
+    } catch (e) {
+      console.warn("Web Audio API not supported");
+    }
   }
 
   static setSoundEnabled(enabled: boolean) {
@@ -17,6 +27,31 @@ export class SoundEffects {
 
   static isSoundEnabled(): boolean {
     return this.soundEnabled;
+  }
+
+  // --- Synthetic Sound Fallbacks ---
+  private static playSyntheticTone(frequency: number, type: OscillatorType, duration: number, volume: number) {
+    if (!this.soundEnabled || !this.audioCtx) return;
+    
+    if (this.audioCtx.state === "suspended") {
+      this.audioCtx.resume();
+    }
+
+    const osc = this.audioCtx.createOscillator();
+    const gainNode = this.audioCtx.createGain();
+
+    osc.type = type;
+    osc.frequency.setValueAtTime(frequency, this.audioCtx.currentTime);
+
+    // Fade out to avoid clicks
+    gainNode.gain.setValueAtTime(volume, this.audioCtx.currentTime);
+    gainNode.gain.exponentialRampToValueAtTime(0.01, this.audioCtx.currentTime + duration);
+
+    osc.connect(gainNode);
+    gainNode.connect(this.audioCtx.destination);
+
+    osc.start();
+    osc.stop(this.audioCtx.currentTime + duration);
   }
 
   static play(soundPath: string, volume = 0.5, loop = false) {
@@ -39,11 +74,31 @@ export class SoundEffects {
 
       if (playPromise !== undefined) {
         playPromise.catch((error) => {
-          console.debug("Audio playback failed:", error);
+          console.debug("Audio file failed, using synthetic fallback", error);
+          this.playFallbackFor(soundPath, volume);
         });
       }
     } catch (error) {
       console.debug("Sound effect failed:", error);
+    }
+  }
+
+  private static playFallbackFor(path: string, volume: number) {
+    if (path.includes("bubble-pop")) {
+      this.playSyntheticTone(800, "sine", 0.1, volume);
+    } else if (path.includes("card-flip")) {
+      this.playSyntheticTone(300, "square", 0.1, volume * 0.5);
+    } else if (path.includes("match-success")) {
+      this.playSyntheticTone(600, "sine", 0.1, volume);
+      setTimeout(() => this.playSyntheticTone(800, "sine", 0.2, volume), 100);
+    } else if (path.includes("level-up")) {
+      this.playSyntheticTone(400, "square", 0.1, volume);
+      setTimeout(() => this.playSyntheticTone(500, "square", 0.1, volume), 100);
+      setTimeout(() => this.playSyntheticTone(600, "square", 0.3, volume), 200);
+    } else if (path.includes("wrong")) {
+      this.playSyntheticTone(150, "sawtooth", 0.3, volume);
+    } else if (path.includes("click") || path.includes("tap")) {
+      this.playSyntheticTone(1000, "sine", 0.05, volume * 0.3);
     }
   }
 
