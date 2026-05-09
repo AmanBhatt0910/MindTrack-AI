@@ -6,15 +6,15 @@ import { LoginInput, SignupInput } from "../schemas/auth.schema";
 import { useRouter } from "next/navigation";
 
 function getDashboardPath(role?: string): string {
-  return role === "doctor" || role === "admin" ? "/doctor" : "/mood";
+  return role === "doctor" || role === "admin" ? "/doctor" : "/dashboard";
 }
 
 export function useAuth() {
-  const { setAuth } = useAuthStore();
+  const { setAuth, logout: clearAuth } = useAuthStore();
   const [loading, setLoading] = useState(false);
   const router = useRouter();
 
-    const login = async (data: LoginInput) => {
+  const login = async (data: LoginInput) => {
     try {
       setLoading(true);
       const res = await authService.login(data);
@@ -46,5 +46,26 @@ export function useAuth() {
     }
   };
 
-  return { login, signup, loading };
+  const logout = async () => {
+    try {
+      setLoading(true);
+      // Call logout endpoint
+      await authService.logout();
+      // Clear local state
+      clearAuth();
+      toast.success("Logged out successfully!");
+      // Redirect to login
+      router.push("/login");
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "Logout failed";
+      console.error("Logout error:", message);
+      // Still clear local state even if API call fails
+      clearAuth();
+      router.push("/login");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return { login, signup, logout, loading };
 }

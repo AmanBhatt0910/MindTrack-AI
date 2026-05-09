@@ -8,6 +8,7 @@ import { Mail, Lock } from "lucide-react";
 
 import { loginSchema, type LoginInput } from "../schemas/auth.schema";
 import { useAuth } from "../hooks/useAuth";
+import { useAuthRedirect } from "../hooks/useAuthRedirect";
 import Input from "@/components/ui/Input";
 import AuthFormWrapper from "./AuthFormWrapper";
 import { AUTH_COPY, AUTH_FIELDS } from "@/constants/auth";
@@ -23,6 +24,12 @@ const COPY = AUTH_COPY.login;
 
 export default function LoginForm() {
   const { login, loading } = useAuth();
+  const { isRedirecting } = useAuthRedirect();
+
+  // Don't show form if redirecting
+  if (isRedirecting) {
+    return null;
+  }
 
   const {
     register,

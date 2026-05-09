@@ -1,6 +1,7 @@
 "use client";
 
 import { useRequireAuth } from "@/hooks/useRequireAuth";
+import { useAuthStore } from "@/store/useAuthStore";
 import DashboardLayout from "@/layouts/DashboardLayout";
 import StatsCards from "@/features/dashboard/components/StatsCards";
 import PostAnalyzer from "@/features/dashboard/components/PostAnalyzer";
@@ -21,7 +22,8 @@ import { useLocation } from "@/hooks/useLocation";
 import { MapPin, Loader2, AlertCircle } from "lucide-react";
 
 export default function DashboardPage() {
-  const user = useRequireAuth(["patient"]);
+  const user = useRequireAuth(["patient", "doctor", "admin"]);
+  const { isDoctor } = useAuthStore();
   const { t } = useTranslation();
   const [history, setHistory] = useState<HistoryItem[]>([]);
   const [error, setError] = useState<string | null>(null);
@@ -32,7 +34,7 @@ export default function DashboardPage() {
   const { status: locationStatus } = useLocation();
 
   const fetchHistory = useCallback(async () => {
-    if (!user) return;
+    if (!user || !isDoctor()) return;
     
     setLoading(true);
     setError(null);
@@ -58,13 +60,15 @@ export default function DashboardPage() {
     } finally {
       setLoading(false);
     }
-  }, [user]);
+  }, [user, isDoctor]);
 
   useEffect(() => {
-    if (user) {
+    if (user && isDoctor()) {
       fetchHistory();
+    } else {
+      setLoading(false);
     }
-  }, [user, fetchHistory]);
+  }, [user, isDoctor, fetchHistory]);
 
   const refreshHistory = () => {
     fetchHistory();
@@ -87,7 +91,7 @@ export default function DashboardPage() {
     );
   }
 
-  if (error) {
+  if (error && isDoctor()) {
     return (
       <DashboardLayout title={t("dashboardTitle")} subtitle={t("dashboardSubtitle")}>
         <div className="text-red-500">Error: {error}</div>
@@ -126,23 +130,34 @@ export default function DashboardPage() {
           </div>
         )}
 
-        <StatsCards history={history} />
-        {currentAnalysis && (
-          <CounselorAlertBanner analysis={currentAnalysis} />
+        {isDoctor() && (
+          <>
+            <StatsCards history={history} />
+            {currentAnalysis && (
+              <CounselorAlertBanner analysis={currentAnalysis} />
+            )}
+            {currentAnalysis && (
+              <TherapistAutoMessageAlert analysis={currentAnalysis} />
+            )}
+            <PostAnalyzer 
+              onAnalysisComplete={handleAnalysisComplete}
+              initialResult={currentAnalysis}
+            />
+          </>
         )}
-        {currentAnalysis && (
-          <TherapistAutoMessageAlert analysis={currentAnalysis} />
-        )}
-        <PostAnalyzer 
-          onAnalysisComplete={handleAnalysisComplete}
-          initialResult={currentAnalysis}
-        />
+        
         <RecommendationCards />
         {currentAnalysis && (
           <GamesAndMusicPanel prediction={currentAnalysis.prediction} />
         )}
-        <AnalysisChart history={history} />
-        <HistoryList data={history} />
+        
+        {isDoctor() && (
+          <>
+            <AnalysisChart history={history} />
+            <HistoryList data={history} />
+          </>
+        )}
+        
         <MentalHealthInfo />
       </div>
     </DashboardLayout>

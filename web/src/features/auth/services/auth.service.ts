@@ -12,4 +12,29 @@ export const authService = {
     const res = await api.post("/auth/signup", data);
     return res.data;
   },
+
+  validateToken: async (token: string): Promise<AuthResponse | null> => {
+    try {
+      const res = await api.post(
+        "/auth/validate-token",
+        {},
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+      return res.data;
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  logout: async (): Promise<void> => {
+    try {
+      await api.post("/auth/logout", {});
+    } catch (error) {
+      console.error("Logout error:", error);
+    }
+  },
 };

@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { Brain, ChevronDown, ChevronRight, LayoutDashboard, FileText, History, Settings, Users, MapPin, Bell, Smile, MessageCircle, TrendingUp, BookOpen } from "lucide-react";
+import { Brain, ChevronDown, ChevronRight, LayoutDashboard, FileText, History, Settings, Users, MapPin, Bell, Smile, MessageCircle, TrendingUp, BookOpen, Gamepad2 } from "lucide-react";
 import { clsx } from "clsx";
 import { SETTINGS_SUBMENU } from "@/constants/dashboard";
 import { useAuthStore } from "@/store/useAuthStore";
@@ -31,20 +31,28 @@ export default function Sidebar() {
   // Determine if the Settings link itself is active
   const isSettingsActive = pathname === "/settings";
 
-  const NAV_ITEMS = [
-    { label: t("overview"), href: "/dashboard", icon: LayoutDashboard },
-    { label: t("analyze"), href: "/dashboard#analyzer", icon: FileText },
-    { label: t("history"), href: "/dashboard#history", icon: History },
-    { label: t("counselling"), href: "/counselling", icon: Users },
-    { label: t("nearby"), href: "/nearby", icon: MapPin },
-    { label: t("moodTracker"), href: "/mood", icon: Smile },
-    { label: t("chat"), href: "/chat", icon: MessageCircle },
-    { label: "Messages", href: "/messages", icon: MessageCircle },
-    { label: t("analytics"), href: "/analytics", icon: TrendingUp },
-    { label: t("blog"), href: "/blog", icon: BookOpen },
-    { label: t("reminders"), href: "/reminders", icon: Bell },
-    { label: t("settings"), href: "/settings", icon: Settings },
+  const { isDoctor } = useAuthStore();
+
+  // Build nav items with role-based filtering
+  const baseNavItems = [
+    { label: t("overview"), href: "/dashboard", icon: LayoutDashboard, roles: ["all"] as const },
+    ...(isDoctor() ? [
+      { label: t("analyze"), href: "/dashboard#analyzer", icon: FileText, roles: ["doctor"] as const },
+      { label: t("history"), href: "/dashboard#history", icon: History, roles: ["doctor"] as const },
+    ] : []),
+    { label: t("counselling"), href: "/counselling", icon: Users, roles: ["all"] as const },
+    { label: t("nearby"), href: "/nearby", icon: MapPin, roles: ["all"] as const },
+    { label: t("moodTracker"), href: "/mood", icon: Smile, roles: ["all"] as const },
+    { label: "Games", href: "/games", icon: Gamepad2, roles: ["all"] as const },
+    { label: t("chat"), href: "/chat", icon: MessageCircle, roles: ["all"] as const },
+    { label: "Messages", href: "/messages", icon: MessageCircle, roles: ["all"] as const },
+    { label: t("analytics"), href: "/analytics", icon: TrendingUp, roles: ["all"] as const },
+    { label: t("blog"), href: "/blog", icon: BookOpen, roles: ["all"] as const },
+    { label: t("reminders"), href: "/reminders", icon: Bell, roles: ["all"] as const },
+    { label: t("settings"), href: "/settings", icon: Settings, roles: ["all"] as const },
   ] as const;
+
+  const NAV_ITEMS = baseNavItems;
 
   return (
     <aside className="hidden md:flex flex-col w-56 shrink-0 h-full bg-(--surface) border-r border-(--border)">
