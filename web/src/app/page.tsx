@@ -13,7 +13,11 @@ export default function HomePage() {
   const user   = useAuthStore((s) => s.user);
 
   const handleStart = () => {
-    router.push(user ? "/mood" : "/login");
+    if (!user) {
+      router.push("/login");
+      return;
+    }
+    router.push(user.role === "doctor" || user.role === "admin" ? "/doctor" : "/mood");
   };
 
   return (

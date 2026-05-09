@@ -8,7 +8,7 @@ import { useTranslation } from "@/hooks/useTranslation";
 import { useState } from "react";
 
 export default function MoodPage() {
-  const user = useRequireAuth();
+  const user = useRequireAuth(["patient"]);
   const { t } = useTranslation();
   const [refreshKey, setRefreshKey] = useState(0);
 

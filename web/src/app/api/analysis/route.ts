@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { connectDB } from "@/lib/db";
 import { Analysis } from "@/models/Analysis";
 import { EmotionSnapshot } from "@/models/EmotionSnapshot";
+import { PatientDoctor } from "@/models/PatientDoctor";
+import { Notification } from "@/models/Notification";
 import { verifyToken } from "@/lib/auth";
 import {
   analyzeJournalWithGemini,
@@ -438,6 +440,36 @@ export async function POST(req: Request) {
       );
     } catch (snapshotErr) {
       console.error("⚠️ EmotionSnapshot error (non-fatal):", snapshotErr);
+    }
+
+    // ─── STEP 5: Notify assigned doctors on crisis ──────────────────────────
+    if (crisisEscalation) {
+      try {
+        const assignments = await PatientDoctor.find({
+          patientId: userId,
+          status: "active",
+        }).lean();
+
+        if (assignments.length > 0) {
+          const notifications = assignments.map((a) => ({
+            userId: a.doctorId,
+            type: "crisis_alert" as const,
+            title: "🚨 Crisis Alert — High Risk Detected",
+            body: `A patient has submitted a journal entry with high-risk indicators. Prediction: ${displayPrediction}, Risk: ${finalRiskLevel}.`,
+            priority: "critical" as const,
+            metadata: {
+              patientId: userId,
+              analysisId: saved._id,
+              riskLevel: finalRiskLevel,
+              prediction: displayPrediction,
+            },
+          }));
+          await Notification.insertMany(notifications);
+          console.log(`🔔 Crisis notifications sent to ${assignments.length} doctor(s)`);
+        }
+      } catch (notifErr) {
+        console.error("⚠️ Crisis notification error (non-fatal):", notifErr);
+      }
     }
 
     return NextResponse.json(saved);

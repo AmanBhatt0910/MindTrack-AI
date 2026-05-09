@@ -21,7 +21,7 @@ import { useLocation } from "@/hooks/useLocation";
 import { MapPin, Loader2, AlertCircle } from "lucide-react";
 
 export default function DashboardPage() {
-  const user = useRequireAuth();
+  const user = useRequireAuth(["patient"]);
   const { t } = useTranslation();
   const [history, setHistory] = useState<HistoryItem[]>([]);
   const [error, setError] = useState<string | null>(null);

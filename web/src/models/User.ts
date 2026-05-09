@@ -5,6 +5,12 @@ const UserSchema = new Schema(
     name: { type: String, required: true },
     email: { type: String, required: true, unique: true },
     password: { type: String, required: true },
+    role: {
+      type: String,
+      enum: ["patient", "doctor", "admin"],
+      default: "patient",
+      index: true,
+    },
     apiKey: { type: String, unique: true, sparse: true },
     notificationPrefs: {
       high_risk: { type: Boolean, default: true },
@@ -15,4 +21,8 @@ const UserSchema = new Schema(
   { timestamps: true }
 );
 
-export const User = models.User || mongoose.model("User", UserSchema);
+if (models.User) {
+  delete models.User;
+}
+
+export const User = mongoose.model("User", UserSchema);

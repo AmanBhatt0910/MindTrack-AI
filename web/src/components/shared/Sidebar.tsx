@@ -39,6 +39,7 @@ export default function Sidebar() {
     { label: t("nearby"), href: "/nearby", icon: MapPin },
     { label: t("moodTracker"), href: "/mood", icon: Smile },
     { label: t("chat"), href: "/chat", icon: MessageCircle },
+    { label: "Messages", href: "/messages", icon: MessageCircle },
     { label: t("analytics"), href: "/analytics", icon: TrendingUp },
     { label: t("blog"), href: "/blog", icon: BookOpen },
     { label: t("reminders"), href: "/reminders", icon: Bell },

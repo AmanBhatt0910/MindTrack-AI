@@ -27,13 +27,15 @@ export async function POST(req: Request) {
       );
     }
 
-    const token = signToken({ id: user._id });
+    const role = user.role || "patient";
+    const token = signToken({ id: user._id.toString(), role });
 
     return NextResponse.json({
       user: {
         id: user._id,
         email: user.email,
         name: user.name,
+        role,
       },
       token,
     });

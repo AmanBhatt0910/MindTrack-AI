@@ -6,7 +6,7 @@ import ChatWindow from "@/features/chatbot/components/ChatWindow";
 import { useTranslation } from "@/hooks/useTranslation";
 
 export default function ChatPage() {
-  const user = useRequireAuth();
+  const user = useRequireAuth(["patient"]);
   const { t } = useTranslation();
 
   if (!user) return null;

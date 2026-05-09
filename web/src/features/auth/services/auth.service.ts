@@ -8,7 +8,7 @@ export const authService = {
     return res.data;
   },
 
-  signup: async (data: SignupInput): Promise<AuthResponse> => {
+  signup: async (data: SignupInput & { role?: string }): Promise<AuthResponse> => {
     const res = await api.post("/auth/signup", data);
     return res.data;
   },

@@ -1,10 +1,11 @@
 "use client";
 
+import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { motion } from "framer-motion";
 import Link from "next/link";
-import { User, Mail, Lock } from "lucide-react";
+import { User, Mail, Lock, Stethoscope, Heart } from "lucide-react";
 
 import { signupSchema, type SignupInput } from "../schemas/auth.schema";
 import { useAuth } from "../hooks/useAuth";
@@ -23,6 +24,7 @@ const COPY = AUTH_COPY.signup;
 
 export default function SignupForm() {
   const { signup, loading } = useAuth();
+  const [role, setRole] = useState<"patient" | "doctor">("patient");
 
   const {
     register,
@@ -32,23 +34,60 @@ export default function SignupForm() {
     resolver: zodResolver(signupSchema),
   });
 
+  const onSubmit = (data: SignupInput) => {
+    signup({ ...data, role });
+  };
+
   return (
     <AuthFormWrapper
-      onSubmit={handleSubmit(signup)}
+      onSubmit={handleSubmit(onSubmit)}
       loading={loading}
-      submitText={COPY.submit}
+      submitText={role === "doctor" ? "Create Doctor Account" : COPY.submit}
       loadingText={COPY.loading}
       switchText={COPY.switchText}
       switchLink={COPY.switchHref}
       switchLinkText={COPY.switchLink}
     >
+      {/* Role Toggle */}
+      <motion.div variants={field}>
+        <label className="text-xs font-medium text-(--text-secondary) mb-1.5 block">
+          I am a
+        </label>
+        <div className="flex gap-2">
+          <button
+            type="button"
+            onClick={() => setRole("patient")}
+            className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg border text-sm font-medium transition-all cursor-pointer ${
+              role === "patient"
+                ? "border-cyan-500/50 bg-cyan-500/10 text-cyan-400"
+                : "border-(--border) text-(--text-muted) hover:border-(--border-active)"
+            }`}
+          >
+            <Heart size={14} />
+            Patient
+          </button>
+          <button
+            type="button"
+            onClick={() => setRole("doctor")}
+            className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg border text-sm font-medium transition-all cursor-pointer ${
+              role === "doctor"
+                ? "border-emerald-500/50 bg-emerald-500/10 text-emerald-400"
+                : "border-(--border) text-(--text-muted) hover:border-(--border-active)"
+            }`}
+          >
+            <Stethoscope size={14} />
+            Doctor / Therapist
+          </button>
+        </div>
+      </motion.div>
+
       {/* Name */}
       <motion.div variants={field}>
         <Input
           {...register("name")}
           type="text"
-          label={AUTH_FIELDS.name.label}
-          placeholder={AUTH_FIELDS.name.placeholder}
+          label={role === "doctor" ? "Full Name (Dr.)" : AUTH_FIELDS.name.label}
+          placeholder={role === "doctor" ? "Dr. Jane Smith" : AUTH_FIELDS.name.placeholder}
           autoComplete={AUTH_FIELDS.name.autoComplete}
           iconLeft={<User size={14} />}
           error={errors.name?.message}

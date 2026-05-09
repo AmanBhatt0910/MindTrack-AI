@@ -34,11 +34,15 @@ api.interceptors.response.use(
   (error) => {
     const data = error?.response?.data;
     // Extract error message – backend may use "error" or "message"
-    const message =
+    let message =
       data?.error ||
       data?.message ||
       error?.message ||
       "Something went wrong";
+      
+    if (data?.details) {
+      message += ` (${data.details})`;
+    }
 
     return Promise.reject(new Error(message));
   }

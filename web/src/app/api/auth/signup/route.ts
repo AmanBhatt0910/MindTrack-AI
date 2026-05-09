@@ -4,10 +4,12 @@ import { User } from "@/models/User";
 import bcrypt from "bcryptjs";
 import { signToken } from "@/lib/auth";
 
+const VALID_ROLES = ["patient", "doctor"] as const;
+
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    const { name, email, password } = body;
+    const { name, email, password, role: requestedRole } = body;
 
     if (!name || !email || !password) {
       return NextResponse.json(
@@ -15,6 +17,8 @@ export async function POST(req: Request) {
         { status: 400 }
       );
     }
+
+    const role = VALID_ROLES.includes(requestedRole) ? requestedRole : "patient";
 
     await connectDB();
 
@@ -32,15 +36,17 @@ export async function POST(req: Request) {
       name,
       email,
       password: hashed,
+      role,
     });
 
-    const token = signToken({ id: user._id });
+    const token = signToken({ id: user._id.toString(), role });
 
     return NextResponse.json({
       user: {
         id: user._id,
         email: user.email,
         name: user.name,
+        role,
       },
       token,
     });
