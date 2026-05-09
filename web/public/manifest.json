@@ -1,0 +1,17 @@
+{
+  "name": "MindTrack SOS",
+  "short_name": "SOS",
+  "description": "Offline Emergency SOS Support",
+  "start_url": "/sos",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#ef4444",
+  "icons": [
+    {
+      "src": "/sos-icon.svg",
+      "sizes": "192x192 512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

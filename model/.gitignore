@@ -1,4 +1,4 @@
-final_mental_health_model/
+mental_health_model/
 *.safetensors
 
 # Python

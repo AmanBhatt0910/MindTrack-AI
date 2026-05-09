@@ -17,6 +17,17 @@ const UserSchema = new Schema(
       weekly_digest: { type: Boolean, default: true },
       model_updates: { type: Boolean, default: true },
     },
+    gamingStats: {
+      xp: { type: Number, default: 0 },
+      level: { type: Number, default: 1 },
+      coins: { type: Number, default: 0 },
+    },
+    streakInfo: {
+      currentStreak: { type: Number, default: 0 },
+      bestStreak: { type: Number, default: 0 },
+      lastLoginDate: { type: Date },
+    },
+    unlockedThemes: { type: [String], default: ["default"] },
   },
   { timestamps: true }
 );
