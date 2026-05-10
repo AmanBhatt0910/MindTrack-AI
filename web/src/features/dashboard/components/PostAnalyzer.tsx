@@ -11,10 +11,6 @@ import Button from "@/components/ui/Button";
 import { postService } from "@/features/posts/services/post.service";
 import { AnalysisResponse } from "@/features/posts/types/post.types";
 import { ANALYZER_COPY } from "@/constants/dashboard";
-import { useAuthStore } from "@/store/useAuthStore";
-import { api } from "@/lib/axios";
-import { toast } from "sonner";
-import { Save } from "lucide-react";
 
 // ─── Skeleton placeholder ─────────────────────────────────────────────────────
 function ResultSkeleton() {
@@ -82,8 +78,6 @@ export default function PostAnalyzer({ onAnalysisComplete, initialResult = null,
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<AnalysisResponse | null>(initialResult);
   const [error, setError] = useState<string | null>(null);
-  const [saving, setSaving] = useState(false);
-  const { isDoctor } = useAuthStore();
 
   const handleAnalyze = async () => {
     if (!text.trim()) return;
@@ -108,24 +102,6 @@ export default function PostAnalyzer({ onAnalysisComplete, initialResult = null,
       setResult(null);
     } finally {
       setLoading(false);
-    }
-  };
-
-  const handleSaveForDoctor = async () => {
-    if (!text.trim()) return;
-    setSaving(true);
-    try {
-      await api.post("/patient-posts", {
-        content: text,
-        allowDoctorAnalysis: true,
-      });
-      toast.success("Post saved for your doctor to analyze!");
-      setText("");
-    } catch (err) {
-      console.error("Failed to save post:", err);
-      toast.error("Failed to save post.");
-    } finally {
-      setSaving(false);
     }
   };
 
@@ -165,30 +141,15 @@ export default function PostAnalyzer({ onAnalysisComplete, initialResult = null,
             )}
           </AnimatePresence>
 
-          <div className="flex flex-col sm:flex-row gap-3 mt-4">
-            <Button
-              onClick={handleAnalyze}
-              loading={loading}
-              disabled={!text.trim() || saving}
-              className="flex-1"
-              icon={<Sparkles size={14} />}
-            >
-              {loading ? "Analyzing…" : "Analyze post"}
-            </Button>
-
-            {!isDoctor() && (
-              <Button
-                variant="outline"
-                onClick={handleSaveForDoctor}
-                loading={saving}
-                disabled={!text.trim() || loading}
-                className="flex-1"
-                icon={<Save size={14} />}
-              >
-                Save for Doctor
-              </Button>
-            )}
-          </div>
+          <Button
+            onClick={handleAnalyze}
+            loading={loading}
+            disabled={!text.trim()}
+            className="w-full"
+            icon={<Sparkles size={14} />}
+          >
+            {loading ? "Analyzing…" : "Analyze post"}
+          </Button>
         </div>
 
         {/* Right: result panel */}

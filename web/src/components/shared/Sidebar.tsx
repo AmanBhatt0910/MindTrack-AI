@@ -36,8 +36,8 @@ export default function Sidebar() {
   // Build nav items with role-based filtering
   const baseNavItems = [
     { label: t("overview"), href: "/dashboard", icon: LayoutDashboard, roles: ["all"] as const },
-    { label: t("analyze"), href: "/dashboard#analyzer", icon: FileText, roles: ["all"] as const },
-    { label: t("history"), href: "/dashboard#history", icon: History, roles: ["all"] as const },
+    { label: t("analyze"), href: "/dashboard#analyzer", icon: FileText, roles: ["doctor"] as const },
+    { label: t("history"), href: "/dashboard#history", icon: History, roles: ["doctor"] as const },
     { label: t("counselling"), href: "/counselling", icon: Users, roles: ["all"] as const },
     { label: t("nearby"), href: "/nearby", icon: MapPin, roles: ["all"] as const },
     { label: t("moodTracker"), href: "/mood", icon: Smile, roles: ["all"] as const },
@@ -50,7 +50,12 @@ export default function Sidebar() {
     { label: t("settings"), href: "/settings", icon: Settings, roles: ["all"] as const },
   ] as const;
 
-  const NAV_ITEMS = baseNavItems;
+  const NAV_ITEMS = baseNavItems.filter((item) => {
+    if (item.roles.includes("all")) return true;
+    if (isDoctor() && item.roles.includes("doctor")) return true;
+    if (!isDoctor() && item.roles.includes("patient")) return true;
+    return false;
+  });
 
   return (
     <aside className="hidden md:flex flex-col w-56 shrink-0 h-full bg-(--surface) border-r border-(--border)">

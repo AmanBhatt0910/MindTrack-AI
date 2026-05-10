@@ -22,6 +22,7 @@ import { useLocation } from "@/hooks/useLocation";
 import { MapPin, Loader2, AlertCircle, Sparkles, Smile, Gamepad2, MessageCircle, ArrowRight } from "lucide-react";
 import Link from "next/link";
 import ConnectedPatientsWidget from "@/features/dashboard/components/ConnectedPatientsWidget";
+import PatientPostWidget from "@/features/dashboard/components/PatientPostWidget";
 
 export default function DashboardPage() {
   const user = useRequireAuth(["patient", "doctor", "admin"]);
@@ -157,6 +158,9 @@ export default function DashboardPage() {
               </div>
             </div>
 
+            {/* Social Media Post Saver for Patients */}
+            <PatientPostWidget />
+
             {/* Quick Actions Grid */}
             <div>
               <h2 className="text-lg font-bold text-[var(--text)] mb-4">Quick Actions</h2>
@@ -197,15 +201,12 @@ export default function DashboardPage() {
             {currentAnalysis && (
               <TherapistAutoMessageAlert analysis={currentAnalysis} />
             )}
+            <PostAnalyzer 
+              onAnalysisComplete={handleAnalysisComplete}
+              initialResult={currentAnalysis}
+            />
           </>
         )}
-
-        {/* Both Patient and Doctor can use the Post Analyzer.
-            Patients can save it, Doctors can view history directly inline. */}
-        <PostAnalyzer 
-          onAnalysisComplete={handleAnalysisComplete}
-          initialResult={currentAnalysis}
-        />
         
         <RecommendationCards />
         {currentAnalysis && (

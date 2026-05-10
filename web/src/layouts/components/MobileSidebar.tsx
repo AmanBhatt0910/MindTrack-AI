@@ -21,10 +21,14 @@ export default function MobileSidebar({ isOpen, onClose }: MobileSidebarProps) {
   const { user, logout } = useAuthStore();
   const { t } = useTranslation();
 
+  const { isDoctor } = useAuthStore();
+
   const NAV_ITEMS = [
     { label: t("overview"), href: "/dashboard", icon: LayoutDashboard },
-    { label: t("analyze"), href: "/dashboard#analyzer", icon: FileText },
-    { label: t("history"), href: "/dashboard#history", icon: History },
+    ...(isDoctor() ? [
+      { label: t("analyze"), href: "/dashboard#analyzer", icon: FileText },
+      { label: t("history"), href: "/dashboard#history", icon: History },
+    ] : []),
     { label: t("counselling"), href: "/counselling", icon: Users },
     { label: t("nearby"), href: "/nearby", icon: MapPin },
     { label: t("moodTracker"), href: "/mood", icon: Smile },
