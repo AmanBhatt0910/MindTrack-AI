@@ -55,7 +55,7 @@ export default function MoodInput({ onSaved }: MoodInputProps) {
   };
 
   return (
-    <div className="rounded-3xl border border-[var(--border)] bg-[var(--surface)] shadow-lg p-8 space-y-8 relative overflow-hidden">
+    <div className="rounded-3xl border border-[var(--border)] bg-[var(--surface)] shadow-lg p-5 sm:p-8 space-y-5 sm:space-y-8 relative overflow-hidden">
       {/* Decorative gradient background */}
       <div className="absolute -top-40 -right-40 w-80 h-80 bg-gradient-to-br from-emerald-500/10 to-teal-500/10 rounded-full blur-3xl pointer-events-none" />
 
@@ -71,20 +71,20 @@ export default function MoodInput({ onSaved }: MoodInputProps) {
       </div>
 
       {/* Mood grid */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 relative z-10">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 relative z-10">
         {MOODS.map(({ label, emoji, color }) => (
           <motion.button
             key={label}
             whileHover={{ scale: 1.05, y: -4 }}
             whileTap={{ scale: 0.95 }}
             onClick={() => setSelected(label)}
-            className={`flex flex-col items-center justify-center gap-3 p-5 rounded-2xl border-2 font-bold transition-all duration-300
+            className={`flex flex-col items-center justify-center gap-2 sm:gap-3 p-3 sm:p-5 rounded-2xl border-2 font-bold transition-all duration-300
               ${selected === label 
                 ? `${color} shadow-lg scale-105` 
                 : "bg-[var(--surface-raised)] border-transparent text-[var(--text-secondary)] hover:border-[var(--border)] hover:bg-[var(--surface-raised)]/80"}`}
           >
-            <span className={`text-4xl filter transition-all duration-300 ${selected === label ? "drop-shadow-md scale-110" : "grayscale opacity-70"}`}>{emoji}</span>
-            <span className="text-sm tracking-wide">
+            <span className={`text-3xl sm:text-4xl filter transition-all duration-300 ${selected === label ? "drop-shadow-md scale-110" : "grayscale opacity-70"}`}>{emoji}</span>
+            <span className="text-xs sm:text-sm tracking-wide">
               {t(MOOD_TRANSLATION_KEYS[label])}
             </span>
           </motion.button>
@@ -92,7 +92,7 @@ export default function MoodInput({ onSaved }: MoodInputProps) {
       </div>
 
       {/* Note */}
-      <div className="space-y-3 relative z-10 bg-[var(--surface-raised)]/30 p-5 rounded-2xl border border-[var(--border)]">
+      <div className="space-y-2 sm:space-y-3 relative z-10 bg-[var(--surface-raised)]/30 p-4 sm:p-5 rounded-2xl border border-[var(--border)]">
         <label className="text-sm font-bold text-[var(--text)] flex items-center gap-2">
           Add a note <span className="text-xs font-medium text-[var(--text-muted)] font-normal">(Optional)</span>
         </label>

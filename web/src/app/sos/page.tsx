@@ -64,7 +64,7 @@ export default function SOSPage() {
             whileTap={status === "idle" ? { scale: 0.95 } : {}}
             onClick={status === "idle" ? handleSOS : undefined}
             disabled={status !== "idle"}
-            className={`relative w-64 h-64 rounded-full flex flex-col items-center justify-center gap-4 shadow-2xl transition-all duration-500 ${
+            className={`relative w-48 h-48 sm:w-64 sm:h-64 rounded-full flex flex-col items-center justify-center gap-2 sm:gap-4 shadow-2xl transition-all duration-500 ${
               status === "idle" 
                 ? "bg-gradient-to-b from-red-500 to-red-700 shadow-red-600/50 hover:shadow-red-500/80 cursor-pointer border-4 border-red-400"
                 : "bg-red-800 shadow-red-900/50 cursor-default border-4 border-red-600"
@@ -72,23 +72,23 @@ export default function SOSPage() {
           >
             {status === "idle" ? (
               <>
-                <AlertTriangle size={64} className="text-white" />
-                <span className="text-2xl font-black tracking-widest text-white uppercase">SOS</span>
+                <AlertTriangle className="text-white w-12 h-12 sm:w-16 sm:h-16" />
+                <span className="text-xl sm:text-2xl font-black tracking-widest text-white uppercase">SOS</span>
               </>
             ) : status === "locating" ? (
               <>
-                <MapPin size={48} className="text-red-200 animate-bounce" />
-                <span className="text-sm font-bold text-red-200 uppercase tracking-widest">Locating...</span>
+                <MapPin className="text-red-200 animate-bounce w-10 h-10 sm:w-12 sm:h-12" />
+                <span className="text-xs sm:text-sm font-bold text-red-200 uppercase tracking-widest">Locating...</span>
               </>
             ) : status === "contacting" ? (
               <>
-                <PhoneCall size={48} className="text-red-200 animate-pulse" />
-                <span className="text-sm font-bold text-red-200 uppercase tracking-widest">Contacting...</span>
+                <PhoneCall className="text-red-200 animate-pulse w-10 h-10 sm:w-12 sm:h-12" />
+                <span className="text-xs sm:text-sm font-bold text-red-200 uppercase tracking-widest">Contacting...</span>
               </>
             ) : (
               <>
-                <ShieldCheck size={64} className="text-green-400" />
-                <span className="text-sm font-bold text-green-400 uppercase tracking-widest">Signal Sent</span>
+                <ShieldCheck className="text-green-400 w-12 h-12 sm:w-16 sm:h-16" />
+                <span className="text-xs sm:text-sm font-bold text-green-400 uppercase tracking-widest">Signal Sent</span>
               </>
             )}
           </motion.button>

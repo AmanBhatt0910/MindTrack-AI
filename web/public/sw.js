@@ -1,4 +1,4 @@
-const CACHE_NAME = 'mindtrack-sos-cache-v2';
+const CACHE_NAME = 'mindtrack-sos-cache-v3';
 const OFFLINE_URL = '/sos';
 
 self.addEventListener('message', (event) => {
@@ -9,7 +9,8 @@ self.addEventListener('message', (event) => {
 
 const URLS_TO_CACHE = [
   OFFLINE_URL,
-  '/sos-icon.svg',
+  '/icon-192x192.png',
+  '/icon-512x512.png',
   '/manifest.json'
 ];
 
@@ -41,44 +42,54 @@ self.addEventListener('activate', (event) => {
 self.addEventListener('fetch', (event) => {
   const req = event.request;
 
-  // Only handle GETs. Anything else (POST/PATCH/DELETE, WebSocket upgrades,
-  // socket.io polling sentinels) must go straight to the network.
   if (req.method !== 'GET') return;
 
   const url = new URL(req.url);
 
-  // Never intercept cross-origin requests. Returning `undefined` from a
-  // cache miss to `respondWith` throws "Failed to convert value to 'Response'",
-  // which broke the socket.io polling transport at http://localhost:3001.
   if (url.origin !== self.location.origin) return;
 
-  // Skip the Next.js dev/runtime and any internal API routes — those need
-  // to hit the network unmediated to behave correctly during development.
+  // Skip APIs, socket.io, and Next.js hot module replacement from caching
   if (
-    url.pathname.startsWith('/_next/') ||
     url.pathname.startsWith('/api/') ||
-    url.pathname.startsWith('/socket.io/')
+    url.pathname.startsWith('/socket.io/') ||
+    url.pathname.includes('webpack-hmr')
   ) {
     return;
   }
 
-  // SOS route gets the offline fallback
-  if (req.mode === 'navigate' || url.pathname.startsWith('/sos')) {
+  // Navigate mode (pages)
+  if (req.mode === 'navigate') {
     event.respondWith(
-      fetch(req).catch(async () => {
-        const cached = await caches.match(OFFLINE_URL);
-        return cached || Response.error();
-      })
+      fetch(req)
+        .then((res) => {
+          const resClone = res.clone();
+          caches.open(CACHE_NAME).then((cache) => cache.put(req, resClone));
+          return res;
+        })
+        .catch(async () => {
+          const cached = await caches.match(req);
+          if (cached) return cached;
+          const fallback = await caches.match(OFFLINE_URL);
+          return fallback || Response.error();
+        })
     );
     return;
   }
 
-  // Everything else: network-first, fall back to cache, finally to an error
-  // Response so we never hand `undefined` to respondWith.
+  // Dynamic caching for assets (CSS, JS, Images)
   event.respondWith(
-    fetch(req).catch(async () => {
-      const cached = await caches.match(req);
-      return cached || Response.error();
-    })
+    fetch(req)
+      .then((res) => {
+        // Only cache successful basic responses
+        if (res && res.status === 200 && res.type === 'basic') {
+          const resClone = res.clone();
+          caches.open(CACHE_NAME).then((cache) => cache.put(req, resClone));
+        }
+        return res;
+      })
+      .catch(async () => {
+        const cached = await caches.match(req);
+        return cached || Response.error();
+      })
   );
 });
