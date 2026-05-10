@@ -22,6 +22,7 @@ export default function PatientMessagesPage() {
   const [newMessage, setNewMessage] = useState("");
   const [loading, setLoading] = useState(true);
   const [socket, setSocket] = useState<Socket | null>(null);
+  const [socketConnected, setSocketConnected] = useState(false);
   const [isTyping, setIsTyping] = useState(false);
   const [otherTyping, setOtherTyping] = useState(false);
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -52,12 +53,14 @@ export default function PatientMessagesPage() {
     });
 
     socketIo.on("connect", () => {
-      console.log("Connected to chat server");
-      // Re-join the active room on reconnect so messages keep flowing.
+      setSocketConnected(true);
       if (activeThreadIdRef.current) {
         socketIo.emit("join_conversation", activeThreadIdRef.current);
       }
     });
+
+    socketIo.on("disconnect", () => setSocketConnected(false));
+    socketIo.on("connect_error", () => setSocketConnected(false));
 
     socketIo.on("typing", (data: { conversationId: string }) => {
       if (data.conversationId === activeThreadIdRef.current) {
@@ -173,14 +176,18 @@ export default function PatientMessagesPage() {
 
   const handleSend = () => {
     const activeThread = threads.find(t => t.id === activeThreadId);
-    if (!activeThreadId || !newMessage.trim() || !socket || !activeThread) return;
-    
+    if (!activeThreadId || !newMessage.trim() || !activeThread) return;
+    if (!socket || !socketConnected) {
+      console.warn("Cannot send: chat server (port 3001) is not connected.");
+      return;
+    }
+
     socket.emit("send_message", {
       conversationId: activeThreadId,
       receiverId: activeThread.otherUser.id,
       content: newMessage.trim()
     });
-    
+
     socket.emit("stop_typing", { conversationId: activeThreadId });
     setIsTyping(false);
     setNewMessage("");
@@ -252,6 +259,11 @@ export default function PatientMessagesPage() {
             <div className={`${activeThreadId ? "flex" : "hidden lg:flex"} flex-col flex-1 bg-[var(--bg)]`}>
               {activeThread ? (
                 <>
+                  {!socketConnected && (
+                    <div className="px-4 py-2 text-xs font-medium bg-amber-500/15 text-amber-300 border-b border-amber-500/30 text-center">
+                      Chat server offline — start it with <code className="px-1 py-0.5 rounded bg-black/30">npm run socket</code> in the <code className="px-1 py-0.5 rounded bg-black/30">web/</code> folder.
+                    </div>
+                  )}
                   {/* Chat header */}
                   <div className="flex items-center justify-between px-6 py-4 border-b border-[var(--border)] bg-[var(--surface)]/80 backdrop-blur-md sticky top-0 z-10 shadow-sm">
                     <div className="flex items-center gap-4">

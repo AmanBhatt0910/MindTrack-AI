@@ -54,6 +54,82 @@ const RISK_COLORS: Record<string, string> = {
   Low: "#10b981",
 };
 
+/**
+ * Strip BERT-style sub-word markers so the rendered tokens read like words.
+ * Handles `##ing` (BERT), `▁` (SentencePiece) and the leading-space `Ġ`
+ * (GPT-2 / RoBERTa BPE) that the model's occlusion explainer can emit.
+ */
+function cleanShapToken(raw: string): { display: string; leadsWord: boolean } {
+  if (!raw) return { display: "", leadsWord: false };
+  if (raw.startsWith("##")) return { display: raw.slice(2), leadsWord: false };
+  if (raw.startsWith("▁")) return { display: raw.slice(1), leadsWord: true };
+  if (raw.startsWith("Ġ")) return { display: raw.slice(1), leadsWord: true };
+  return { display: raw, leadsWord: true };
+}
+
+interface ShapData {
+  tokens: string[];
+  scores: number[];
+}
+
+function ShapExplanation({ data, label }: { data: ShapData; label: string }) {
+  const maxAbs = Math.max(
+    1e-6,
+    ...data.scores.map((s) => Math.abs(s))
+  );
+
+  return (
+    <div className="mt-3 rounded-lg border border-(--border) bg-(--surface-raised)/40 p-3">
+      <div className="flex items-center justify-between mb-2">
+        <p className="text-[11px] font-medium text-(--text) flex items-center gap-1.5">
+          <Brain size={12} className="text-purple-400" />
+          Why the model predicted <span className="text-purple-300">{label}</span>
+        </p>
+        <div className="flex items-center gap-2 text-[10px] text-(--text-muted)">
+          <span className="flex items-center gap-1">
+            <span className="inline-block w-2.5 h-2.5 rounded-sm bg-red-500/60" />
+            increases
+          </span>
+          <span className="flex items-center gap-1">
+            <span className="inline-block w-2.5 h-2.5 rounded-sm bg-blue-500/60" />
+            decreases
+          </span>
+        </div>
+      </div>
+
+      <div className="leading-7 text-[13px] text-(--text)">
+        {data.tokens.map((rawToken, i) => {
+          const { display, leadsWord } = cleanShapToken(rawToken);
+          if (!display.trim()) return null;
+          const score = data.scores[i] ?? 0;
+          const intensity = Math.min(1, Math.abs(score) / maxAbs);
+          const isPositive = score > 0;
+          // Tailwind can't generate dynamic alpha values at runtime, so use inline style.
+          const bg = isPositive
+            ? `rgba(239, 68, 68, ${0.08 + intensity * 0.42})`
+            : `rgba(59, 130, 246, ${0.08 + intensity * 0.42})`;
+          return (
+            <span key={i}>
+              {leadsWord && i > 0 ? " " : ""}
+              <span
+                title={`${display}: ${score >= 0 ? "+" : ""}${score.toFixed(3)}`}
+                className="rounded px-0.5 py-0.5 transition-colors"
+                style={{ backgroundColor: bg }}
+              >
+                {display}
+              </span>
+            </span>
+          );
+        })}
+      </div>
+      <p className="mt-2 text-[10px] text-(--text-muted) italic">
+        Hover any token to see its contribution to the prediction. Scores are leave-one-out
+        deltas in the model's confidence for {label}.
+      </p>
+    </div>
+  );
+}
+
 export default function PatientDetailPage() {
   const params = useParams();
   const router = useRouter();
@@ -103,27 +179,26 @@ export default function PatientDetailPage() {
   const handleAnalyzePost = async (post: PatientPostType) => {
     setAnalyzingPostId(post._id);
     try {
-      // 1. Run the analysis via the postService
       const res = await api.post("/analysis", {
         text: post.content,
         language: "auto",
         patientId
       });
-      
+
       const analysisData = res.data;
-      
+
       if (!analysisData.error) {
-        // 2. Mark the post as analyzed
         await api.patch(`/patient-posts/${post._id}`, {
           analysisId: analysisData._id
         });
-        
-        // 3. Refresh patient detail to show new analysis in recentAnalyses
+
         const updatedDetail = await doctorService.getPatientDetail(patientId);
         setDetail(updatedDetail);
-        
-        // Update local post state
+
         setPatientPosts(prev => prev.map(p => p._id === post._id ? { ...p, analyzed: true, analysisId: analysisData._id } : p));
+
+        // Jump to the Analyses tab so the doctor sees the new entry immediately.
+        setActiveTab("analyses");
       }
     } catch (err) {
       console.error("Analysis failed:", err);
@@ -433,6 +508,45 @@ export default function PatientDetailPage() {
                     </div>
                   ))}
                 </div>
+
+                {/* Source text the prediction was made from */}
+                {(a.text || a.originalText) && (
+                  <div className="mt-3 rounded-lg border border-(--border) bg-(--surface-raised)/40 p-3">
+                    <div className="flex items-center justify-between mb-1.5">
+                      <p className="text-[11px] font-medium text-(--text) flex items-center gap-1.5">
+                        <FileText size={12} className="text-(--text-muted)" />
+                        Patient text analyzed
+                      </p>
+                      {a.wasTranslated && a.detectedLanguage && (
+                        <span className="text-[10px] px-2 py-0.5 rounded-full bg-blue-500/10 text-blue-300">
+                          translated from {a.detectedLanguage}
+                        </span>
+                      )}
+                    </div>
+                    {a.wasTranslated && a.originalText ? (
+                      <div className="space-y-2">
+                        <p className="text-[12px] text-(--text-secondary) whitespace-pre-wrap">
+                          <span className="text-[10px] uppercase tracking-wide text-(--text-muted) block mb-0.5">Original</span>
+                          {a.originalText}
+                        </p>
+                        <p className="text-[12px] text-(--text) whitespace-pre-wrap">
+                          <span className="text-[10px] uppercase tracking-wide text-(--text-muted) block mb-0.5">Analyzed (English)</span>
+                          {a.text}
+                        </p>
+                      </div>
+                    ) : (
+                      <p className="text-[12px] text-(--text) whitespace-pre-wrap">{a.text || a.originalText}</p>
+                    )}
+                  </div>
+                )}
+
+                {/* Explainable AI: token-level SHAP-style attribution */}
+                {a.mlData?.shapData?.tokens?.length ? (
+                  <ShapExplanation
+                    data={a.mlData.shapData}
+                    label={a.prediction}
+                  />
+                ) : null}
 
                 {/* Explanation */}
                 {a.explanation && a.explanation.length > 0 && (

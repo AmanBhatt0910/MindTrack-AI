@@ -1,5 +1,11 @@
-const CACHE_NAME = 'mindtrack-sos-cache-v1';
+const CACHE_NAME = 'mindtrack-sos-cache-v2';
 const OFFLINE_URL = '/sos';
+
+self.addEventListener('message', (event) => {
+  if (event.data === 'SKIP_WAITING') {
+    self.skipWaiting();
+  }
+});
 
 const URLS_TO_CACHE = [
   OFFLINE_URL,
@@ -33,19 +39,46 @@ self.addEventListener('activate', (event) => {
 });
 
 self.addEventListener('fetch', (event) => {
-  // Only handle navigation requests for the SOS route
-  if (event.request.mode === 'navigate' || event.request.url.includes('/sos')) {
-    event.respondWith(
-      fetch(event.request).catch(() => {
-        return caches.match(OFFLINE_URL);
-      })
-    );
-  } else {
-    // For all other requests, try network first, then cache
-    event.respondWith(
-      fetch(event.request).catch(() => {
-        return caches.match(event.request);
-      })
-    );
+  const req = event.request;
+
+  // Only handle GETs. Anything else (POST/PATCH/DELETE, WebSocket upgrades,
+  // socket.io polling sentinels) must go straight to the network.
+  if (req.method !== 'GET') return;
+
+  const url = new URL(req.url);
+
+  // Never intercept cross-origin requests. Returning `undefined` from a
+  // cache miss to `respondWith` throws "Failed to convert value to 'Response'",
+  // which broke the socket.io polling transport at http://localhost:3001.
+  if (url.origin !== self.location.origin) return;
+
+  // Skip the Next.js dev/runtime and any internal API routes — those need
+  // to hit the network unmediated to behave correctly during development.
+  if (
+    url.pathname.startsWith('/_next/') ||
+    url.pathname.startsWith('/api/') ||
+    url.pathname.startsWith('/socket.io/')
+  ) {
+    return;
   }
+
+  // SOS route gets the offline fallback
+  if (req.mode === 'navigate' || url.pathname.startsWith('/sos')) {
+    event.respondWith(
+      fetch(req).catch(async () => {
+        const cached = await caches.match(OFFLINE_URL);
+        return cached || Response.error();
+      })
+    );
+    return;
+  }
+
+  // Everything else: network-first, fall back to cache, finally to an error
+  // Response so we never hand `undefined` to respondWith.
+  event.respondWith(
+    fetch(req).catch(async () => {
+      const cached = await caches.match(req);
+      return cached || Response.error();
+    })
+  );
 });
