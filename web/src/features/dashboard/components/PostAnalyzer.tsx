@@ -69,9 +69,10 @@ function SectionHeader() {
 interface PostAnalyzerProps {
   onAnalysisComplete?: (analysis: AnalysisResponse) => void;
   initialResult?: AnalysisResponse | null;
+  patientId?: string;
 }
 
-export default function PostAnalyzer({ onAnalysisComplete, initialResult = null }: PostAnalyzerProps) {
+export default function PostAnalyzer({ onAnalysisComplete, initialResult = null, patientId }: PostAnalyzerProps) {
   const [text, setText] = useState("");
   const [language, setLanguage] = useState("auto");
   const [loading, setLoading] = useState(false);
@@ -83,7 +84,7 @@ export default function PostAnalyzer({ onAnalysisComplete, initialResult = null 
     setLoading(true);
     setError(null);
     try {
-      const res = await postService.analyze(text, language);
+      const res = await postService.analyze(text, language, patientId);
       // Check if the API returned an error in the response body
       if (res.error) {
         setError(res.error);

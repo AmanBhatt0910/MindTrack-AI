@@ -4,9 +4,10 @@ import { AnalysisResponse } from "../types/post.types";
 export const postService = {
   analyze: async (
     text: string,
-    language: string
+    language: string,
+    patientId?: string
   ): Promise<AnalysisResponse> => {
-    const res = await api.post("/analysis", { text, language });
+    const res = await api.post("/analysis", { text, language, patientId });
     return res.data;
   },
   

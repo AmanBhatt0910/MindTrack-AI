@@ -22,6 +22,7 @@ import { useLocation } from "@/hooks/useLocation";
 import { MapPin, Loader2, AlertCircle, Sparkles, Smile, Gamepad2, MessageCircle, ArrowRight } from "lucide-react";
 import Link from "next/link";
 import ConnectedPatientsWidget from "@/features/dashboard/components/ConnectedPatientsWidget";
+import PatientPostWidget from "@/features/dashboard/components/PatientPostWidget";
 
 export default function DashboardPage() {
   const user = useRequireAuth(["patient", "doctor", "admin"]);
@@ -156,6 +157,9 @@ export default function DashboardPage() {
                 </div>
               </div>
             </div>
+
+            {/* Social Media Post Saver for Patients */}
+            <PatientPostWidget />
 
             {/* Quick Actions Grid */}
             <div>

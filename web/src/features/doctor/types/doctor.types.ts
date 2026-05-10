@@ -60,6 +60,12 @@ export interface PatientAnalysis {
   };
   crisisEscalation: boolean;
   createdAt: string;
+  /** The text that was actually fed to the model (post-translation if any). */
+  text?: string;
+  /** The original (pre-translation) text, when wasTranslated === true. */
+  originalText?: string;
+  detectedLanguage?: string;
+  wasTranslated?: boolean;
 }
 
 export interface PatientDetail {

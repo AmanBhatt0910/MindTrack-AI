@@ -22,16 +22,29 @@ export default function MessagesPage() {
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
   const [socket, setSocket] = useState<Socket | null>(null);
+  const [socketConnected, setSocketConnected] = useState(false);
   const [isTyping, setIsTyping] = useState(false);
   const [otherTyping, setOtherTyping] = useState(false);
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  
+  const activeThreadIdRef = useRef<string | null>(null);
+  const userIdRef = useRef<string | undefined>(undefined);
+
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
+    activeThreadIdRef.current = activeThreadId;
+  }, [activeThreadId]);
+
+  useEffect(() => {
+    userIdRef.current = user?.id;
+  }, [user]);
+
+  useEffect(() => {
     loadThreads();
-    
-    // Connect to Socket.IO Server
+  }, []);
+
+  useEffect(() => {
+    if (!user) return;
     const token = localStorage.getItem("token");
     if (!token) return;
 
@@ -40,37 +53,46 @@ export default function MessagesPage() {
     });
 
     socketIo.on("connect", () => {
-      console.log("Connected to chat server");
+      setSocketConnected(true);
+      if (activeThreadIdRef.current) {
+        socketIo.emit("join_conversation", activeThreadIdRef.current);
+      }
     });
 
+    socketIo.on("disconnect", () => setSocketConnected(false));
+    socketIo.on("connect_error", () => setSocketConnected(false));
+
     socketIo.on("typing", (data: { conversationId: string }) => {
-      if (data.conversationId === activeThreadId) {
+      if (data.conversationId === activeThreadIdRef.current) {
         setOtherTyping(true);
       }
     });
 
     socketIo.on("stop_typing", (data: { conversationId: string }) => {
-      if (data.conversationId === activeThreadId) {
+      if (data.conversationId === activeThreadIdRef.current) {
         setOtherTyping(false);
       }
     });
 
     socketIo.on("new_message", (msg: MessageItem) => {
-      setMessages(prev => {
-        // Only append if it's not already in the list
-        if (!prev.find(m => m._id === msg._id)) {
-          return [...prev, msg];
-        }
-        return prev;
-      });
+      const msgConvId = (msg as MessageItem & { conversationId?: string }).conversationId;
+      if (msgConvId && msgConvId === activeThreadIdRef.current) {
+        setMessages(prev => {
+          if (!prev.find(m => m._id === msg._id)) {
+            return [...prev, msg];
+          }
+          return prev;
+        });
+      }
       setOtherTyping(false);
-      // Update thread last message
       setThreads(prev => prev.map(t => {
-        if (t.id === (msg as any).conversationId) {
+        if (t.id === msgConvId) {
+          const isFromMe = msg.senderId === userIdRef.current;
+          const isActive = t.id === activeThreadIdRef.current;
           return {
             ...t,
             lastMessage: { content: msg.content, sentAt: msg.createdAt, senderId: msg.senderId },
-            unreadCount: msg.senderId !== user?.id && t.id !== activeThreadId ? t.unreadCount + 1 : 0
+            unreadCount: !isFromMe && !isActive ? t.unreadCount + 1 : 0
           };
         }
         return t;
@@ -78,13 +100,14 @@ export default function MessagesPage() {
     });
 
     socketIo.on("message_notification", (msg: MessageItem) => {
-      // Received when not in room
+      const msgConvId = (msg as MessageItem & { conversationId?: string }).conversationId;
       setThreads(prev => prev.map(t => {
-        if (t.id === (msg as any).conversationId) {
+        if (t.id === msgConvId) {
+          const isActive = t.id === activeThreadIdRef.current;
           return {
             ...t,
             lastMessage: { content: msg.content, sentAt: msg.createdAt, senderId: msg.senderId },
-            unreadCount: t.unreadCount + 1
+            unreadCount: isActive ? 0 : t.unreadCount + 1
           };
         }
         return t;
@@ -96,7 +119,7 @@ export default function MessagesPage() {
     return () => {
       socketIo.disconnect();
     };
-  }, [user, activeThreadId]);
+  }, [user]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -152,14 +175,18 @@ export default function MessagesPage() {
 
   const handleSend = () => {
     const activeThread = threads.find(t => t.id === activeThreadId);
-    if (!activeThreadId || !newMessage.trim() || !socket || !activeThread) return;
-    
+    if (!activeThreadId || !newMessage.trim() || !activeThread) return;
+    if (!socket || !socketConnected) {
+      console.warn("Cannot send: chat server (port 3001) is not connected.");
+      return;
+    }
+
     socket.emit("send_message", {
       conversationId: activeThreadId,
       receiverId: activeThread.otherUser.id,
       content: newMessage.trim()
     });
-    
+
     setNewMessage("");
   };
 
@@ -224,6 +251,11 @@ export default function MessagesPage() {
         <div className={`${activeThreadId ? "flex" : "hidden sm:flex"} flex-col flex-1`}>
           {activeThread ? (
             <>
+              {!socketConnected && (
+                <div className="px-4 py-2 text-xs font-medium bg-amber-500/15 text-amber-300 border-b border-amber-500/30 text-center">
+                  Chat server offline — start it with <code className="px-1 py-0.5 rounded bg-black/30">npm run socket</code> in the <code className="px-1 py-0.5 rounded bg-black/30">web/</code> folder.
+                </div>
+              )}
               {/* Chat header */}
               <div className="flex items-center gap-3 px-4 py-3 border-b border-(--border)">
                 <button
