@@ -8,6 +8,7 @@ import DashboardFooter from "./components/DashboardFooter";
 import DashboardMobileSidebar from "./components/MobileSidebar";
 import MoodPromptModal from "@/features/mood/components/MoodPromptModal";
 import PwaInstallBanner from "@/components/ui/PwaInstallBanner";
+import SOSAlertBanner from "@/features/crisis/components/SOSAlertBanner";
 
 interface DashboardLayoutProps {
   children: React.ReactNode;
@@ -37,6 +38,7 @@ export default function DashboardLayout({
       {/* Main column */}
       <div className="flex flex-col flex-1 min-w-0 h-full">
         <PwaInstallBanner />
+        <SOSAlertBanner />
         <DashboardHeader title={title} subtitle={subtitle} onMenuClick={handleMenuClick} />
 
         <main

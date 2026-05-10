@@ -1,21 +1,80 @@
 "use client";
 
-import { useState } from "react";
-import { AlertTriangle, MapPin, PhoneCall, ShieldCheck, ArrowLeft } from "lucide-react";
+import { useState, useEffect } from "react";
+import { AlertTriangle, MapPin, PhoneCall, ShieldCheck, ArrowLeft, WifiOff } from "lucide-react";
 import { motion } from "framer-motion";
 import Link from "next/link";
+import { io } from "socket.io-client";
 
 export default function SOSPage() {
-  const [status, setStatus] = useState<"idle" | "locating" | "contacting" | "sent">("idle");
+  const [status, setStatus] = useState<"idle" | "locating" | "contacting" | "sent_offline" | "sent_online">("idle");
+  const [isOffline, setIsOffline] = useState(false);
 
-  const handleSOS = () => {
+  useEffect(() => {
+    setIsOffline(!navigator.onLine);
+    const handleOffline = () => setIsOffline(true);
+    const handleOnline = () => setIsOffline(false);
+
+    window.addEventListener("offline", handleOffline);
+    window.addEventListener("online", handleOnline);
+
+    return () => {
+      window.removeEventListener("offline", handleOffline);
+      window.removeEventListener("online", handleOnline);
+    };
+  }, []);
+
+  const handleSOS = async () => {
     setStatus("locating");
-    setTimeout(() => {
+    
+    // Simulate slight delay for locating
+    setTimeout(async () => {
       setStatus("contacting");
-      setTimeout(() => {
-        setStatus("sent");
-      }, 2000);
-    }, 2000);
+
+      setTimeout(async () => {
+        if (!navigator.onLine) {
+          // OFFLINE MODE: Trigger native SMS fallback
+          window.location.href = "sms:112?body=EMERGENCY SOS: I need help immediately. My location is currently unavailable due to being offline.";
+          setStatus("sent_offline");
+        } else {
+          // ONLINE MODE: Connect to socket and emit
+          try {
+            const token = localStorage.getItem("token");
+            if (!token) {
+              // If not logged in, we can't emit a patient SOS via socket
+              // Fallback to SMS
+              window.location.href = "sms:112?body=EMERGENCY SOS: I need help immediately.";
+              setStatus("sent_offline");
+              return;
+            }
+
+            const socket = io("http://localhost:3001", {
+              auth: { token }
+            });
+
+            socket.on("connect", () => {
+              socket.emit("trigger_sos");
+              setStatus("sent_online");
+              
+              // Disconnect after emitting to save resources
+              setTimeout(() => {
+                socket.disconnect();
+              }, 1000);
+            });
+
+            socket.on("connect_error", () => {
+              // Fallback if socket server is down
+              window.location.href = "sms:112?body=EMERGENCY SOS: I need help immediately.";
+              setStatus("sent_offline");
+            });
+
+          } catch (e) {
+            window.location.href = "sms:112?body=EMERGENCY SOS: I need help immediately.";
+            setStatus("sent_offline");
+          }
+        }
+      }, 1000);
+    }, 1000);
   };
 
   return (
@@ -32,11 +91,18 @@ export default function SOSPage() {
         </Link>
       </div>
 
+      {isOffline && (
+        <div className="absolute top-6 right-6 z-10 flex items-center gap-2 text-orange-400 bg-orange-400/10 px-3 py-1 rounded-full border border-orange-400/20">
+          <WifiOff size={14} />
+          <span className="text-xs font-bold uppercase tracking-wider">Offline Mode</span>
+        </div>
+      )}
+
       <div className="w-full max-w-md flex flex-col items-center z-10 space-y-12">
         <div className="text-center space-y-3">
           <h1 className="text-3xl font-bold tracking-widest uppercase">Emergency SOS</h1>
           <p className="text-slate-400 text-sm">
-            Press the button below to simulate an emergency signal.
+            Press the button below to trigger an emergency alert.
           </p>
         </div>
 
@@ -83,7 +149,7 @@ export default function SOSPage() {
             ) : status === "contacting" ? (
               <>
                 <PhoneCall className="text-red-200 animate-pulse w-10 h-10 sm:w-12 sm:h-12" />
-                <span className="text-xs sm:text-sm font-bold text-red-200 uppercase tracking-widest">Contacting...</span>
+                <span className="text-xs sm:text-sm font-bold text-red-200 uppercase tracking-widest">Connecting...</span>
               </>
             ) : (
               <>
@@ -97,15 +163,19 @@ export default function SOSPage() {
         <div className="w-full bg-slate-900/50 backdrop-blur-md border border-slate-800 rounded-2xl p-6 text-center">
           {status === "idle" ? (
             <p className="text-sm text-slate-400">
-              This is a simulated offline interface. No actual network calls or emergency services will be contacted.
+              {isOffline ? "You are offline. Triggering SOS will open your native SMS app to text emergency services." : "Triggering SOS will instantly notify your assigned doctors via the network."}
             </p>
-          ) : status === "sent" ? (
+          ) : status === "sent_online" ? (
             <p className="text-sm text-green-400 font-bold">
-              Help is on the way. Please stay calm.
+              Emergency alert has been sent to your connected doctors. Please stay calm.
+            </p>
+          ) : status === "sent_offline" ? (
+            <p className="text-sm text-orange-400 font-bold">
+              Network unavailable. Your native SMS app has been opened to contact emergency services.
             </p>
           ) : (
             <p className="text-sm text-slate-300 animate-pulse">
-              Please wait while we establish a secure offline simulation...
+              Please wait while we establish a connection...
             </p>
           )}
         </div>

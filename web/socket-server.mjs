@@ -171,6 +171,41 @@ io.on("connection", (socket) => {
     socket.to(conversationId).emit("messages_read", { conversationId, userId });
   });
 
+  socket.on("trigger_sos", async () => {
+    if (user.role !== "patient") return;
+
+    const alert = {
+      patientId: new mongoose.Types.ObjectId(userId),
+      patientName: user.name,
+      status: "active",
+      resolvedAt: null,
+      createdAt: new Date(),
+      updatedAt: new Date()
+    };
+
+    const res = await db.collection("sosalerts").insertOne(alert);
+    
+    const wireAlert = {
+      _id: res.insertedId.toString(),
+      ...alert,
+      patientId: userId
+    };
+
+    // Find assigned doctors
+    const connections = await db.collection("patientdoctors").find({
+      patientId: new mongoose.Types.ObjectId(userId),
+      status: "active"
+    }).toArray();
+
+    connections.forEach(conn => {
+      const docIdStr = conn.doctorId.toString();
+      const docSocketId = connectedUsers.get(docIdStr);
+      if (docSocketId) {
+        io.to(docSocketId).emit("new_sos_alert", wireAlert);
+      }
+    });
+  });
+
   socket.on("disconnect", () => {
     console.log(`User disconnected: ${userId}`);
     connectedUsers.delete(userId);
