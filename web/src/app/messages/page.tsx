@@ -25,13 +25,25 @@ export default function PatientMessagesPage() {
   const [isTyping, setIsTyping] = useState(false);
   const [otherTyping, setOtherTyping] = useState(false);
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  
+  const activeThreadIdRef = useRef<string | null>(null);
+  const userIdRef = useRef<string | undefined>(undefined);
+
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
+    activeThreadIdRef.current = activeThreadId;
+  }, [activeThreadId]);
+
+  useEffect(() => {
+    userIdRef.current = user?.id;
+  }, [user]);
+
+  useEffect(() => {
     loadThreads();
-    
-    // Connect to Socket.IO Server
+  }, []);
+
+  useEffect(() => {
+    if (!user) return;
     const token = localStorage.getItem("token");
     if (!token) return;
 
@@ -41,35 +53,43 @@ export default function PatientMessagesPage() {
 
     socketIo.on("connect", () => {
       console.log("Connected to chat server");
+      // Re-join the active room on reconnect so messages keep flowing.
+      if (activeThreadIdRef.current) {
+        socketIo.emit("join_conversation", activeThreadIdRef.current);
+      }
     });
 
     socketIo.on("typing", (data: { conversationId: string }) => {
-      if (data.conversationId === activeThreadId) {
+      if (data.conversationId === activeThreadIdRef.current) {
         setOtherTyping(true);
       }
     });
 
     socketIo.on("stop_typing", (data: { conversationId: string }) => {
-      if (data.conversationId === activeThreadId) {
+      if (data.conversationId === activeThreadIdRef.current) {
         setOtherTyping(false);
       }
     });
 
     socketIo.on("new_message", (msg: MessageItem) => {
-      setMessages(prev => {
-        if (!prev.find(m => m._id === msg._id)) {
-          return [...prev, msg];
-        }
-        return prev;
-      });
+      const msgConvId = (msg as MessageItem & { conversationId?: string }).conversationId;
+      if (msgConvId && msgConvId === activeThreadIdRef.current) {
+        setMessages(prev => {
+          if (!prev.find(m => m._id === msg._id)) {
+            return [...prev, msg];
+          }
+          return prev;
+        });
+      }
       setOtherTyping(false);
-      // Update thread last message
       setThreads(prev => prev.map(t => {
-        if (t.id === (msg as any).conversationId) {
+        if (t.id === msgConvId) {
+          const isFromMe = msg.senderId === userIdRef.current;
+          const isActive = t.id === activeThreadIdRef.current;
           return {
             ...t,
             lastMessage: { content: msg.content, sentAt: msg.createdAt, senderId: msg.senderId },
-            unreadCount: msg.senderId !== user?.id && t.id !== activeThreadId ? t.unreadCount + 1 : 0
+            unreadCount: !isFromMe && !isActive ? t.unreadCount + 1 : 0
           };
         }
         return t;
@@ -77,12 +97,14 @@ export default function PatientMessagesPage() {
     });
 
     socketIo.on("message_notification", (msg: MessageItem) => {
+      const msgConvId = (msg as MessageItem & { conversationId?: string }).conversationId;
       setThreads(prev => prev.map(t => {
-        if (t.id === (msg as any).conversationId) {
+        if (t.id === msgConvId) {
+          const isActive = t.id === activeThreadIdRef.current;
           return {
             ...t,
             lastMessage: { content: msg.content, sentAt: msg.createdAt, senderId: msg.senderId },
-            unreadCount: t.unreadCount + 1
+            unreadCount: isActive ? 0 : t.unreadCount + 1
           };
         }
         return t;
@@ -94,7 +116,7 @@ export default function PatientMessagesPage() {
     return () => {
       socketIo.disconnect();
     };
-  }, [user, activeThreadId]);
+  }, [user]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });

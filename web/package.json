@@ -6,7 +6,9 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "socket": "node socket-server.mjs",
+    "ml": "../model/venv/bin/uvicorn main:app --reload --host 127.0.0.1 --port 8000 --app-dir ../model"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",

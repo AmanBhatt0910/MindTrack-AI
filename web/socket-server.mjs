@@ -109,13 +109,12 @@ io.on("connection", (socket) => {
     };
 
     const res = await db.collection("messages").insertOne(message);
-    const savedMessage = { ...message, _id: res.insertedId };
 
     // Update conversation last message
     await db.collection("conversations").updateOne(
       { _id: new mongoose.Types.ObjectId(conversationId) },
-      { 
-        $set: { 
+      {
+        $set: {
           lastMessage: {
             content,
             senderId: new mongoose.Types.ObjectId(userId),
@@ -126,13 +125,28 @@ io.on("connection", (socket) => {
       }
     );
 
+    // Serialize IDs to strings so the client can do plain string comparisons.
+    const wireMessage = {
+      _id: res.insertedId.toString(),
+      conversationId,
+      senderId: userId,
+      receiverId,
+      senderRole: user.role,
+      content,
+      read: false,
+      readAt: null,
+      createdAt: message.createdAt,
+      updatedAt: message.updatedAt
+    };
+
     // Emit to conversation room
-    io.to(conversationId).emit("new_message", savedMessage);
-    
-    // Also emit to receiver if they are online but not in the room
+    io.to(conversationId).emit("new_message", wireMessage);
+
+    // Also notify the receiver directly (so their thread list updates even
+    // when they don't have the conversation open).
     const receiverSocketId = connectedUsers.get(receiverId);
     if (receiverSocketId) {
-      io.to(receiverSocketId).emit("message_notification", savedMessage);
+      io.to(receiverSocketId).emit("message_notification", wireMessage);
     }
   });
 

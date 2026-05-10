@@ -41,27 +41,46 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
   const radiusMeters = Math.min(Math.round(radiusKm * 1000), 50000); // 50km max for Places API
 
   try {
-    const url = new URL("https://maps.googleapis.com/maps/api/place/nearbysearch/json");
-    url.searchParams.append("location", `${lat},${lng}`);
-    url.searchParams.append("radius", radiusMeters.toString());
-    url.searchParams.append("keyword", "therapist OR psychologist OR psychiatrist OR counsellor");
-    url.searchParams.append("key", apiKey);
+    // Google Places `keyword` does not support an OR-style query language; a
+    // literal "therapist OR psychologist…" matches almost nothing. Run one
+    // request per term and merge by place_id instead.
+    const KEYWORDS = ["therapist", "psychologist", "psychiatrist", "counsellor"];
 
-    const res = await fetch(url.toString(), {
-      next: { revalidate: 3600 }, // Cache for an hour to save quota
-    });
+    const responses = await Promise.all(
+      KEYWORDS.map(async (keyword) => {
+        const url = new URL(
+          "https://maps.googleapis.com/maps/api/place/nearbysearch/json"
+        );
+        url.searchParams.append("location", `${lat},${lng}`);
+        url.searchParams.append("radius", radiusMeters.toString());
+        url.searchParams.append("keyword", keyword);
+        url.searchParams.append("key", apiKey);
 
-    if (!res.ok) {
-      throw new Error(`Google Places API returned ${res.status}`);
+        const res = await fetch(url.toString(), {
+          next: { revalidate: 3600 },
+        });
+        if (!res.ok) {
+          throw new Error(`Google Places API returned ${res.status}`);
+        }
+        const data = await res.json();
+        if (data.status !== "OK" && data.status !== "ZERO_RESULTS") {
+          throw new Error(
+            `Google Places API error: ${data.status} - ${data.error_message || ""}`
+          );
+        }
+        return (data.results || []) as any[];
+      })
+    );
+
+    const dedup = new Map<string, any>();
+    for (const list of responses) {
+      for (const place of list) {
+        if (place?.place_id && !dedup.has(place.place_id)) {
+          dedup.set(place.place_id, place);
+        }
+      }
     }
-
-    const data = await res.json();
-
-    if (data.status !== "OK" && data.status !== "ZERO_RESULTS") {
-      throw new Error(`Google Places API error: ${data.status} - ${data.error_message || ""}`);
-    }
-
-    const results = data.results || [];
+    const results = Array.from(dedup.values());
     const userCoords = { lat, lng };
 
     const formattedTherapists: TherapistWithDistance[] = results.map((place: any) => {

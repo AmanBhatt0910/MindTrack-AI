@@ -34,13 +34,17 @@ export default function NearbyCounselors() {
       .catch((err) => console.error("Maps config error:", err));
   }, []);
 
-  const activeLoc =
-    latitude !== null && longitude !== null
-      ? { lat: latitude, lng: longitude }
-      : INDIA_CENTER;
+  const hasRealLocation = latitude !== null && longitude !== null;
+  const activeLoc = hasRealLocation
+    ? { lat: latitude as number, lng: longitude as number }
+    : INDIA_CENTER;
 
-  // Fetch real therapists from the API whenever the user's location is known
+  // Only fetch once we know whether the user granted geolocation. While we
+  // are still waiting on the browser prompt, skip the request — otherwise we
+  // briefly show therapists clustered around the geographic centre of India.
   useEffect(() => {
+    if (status === "loading" || status === "idle") return;
+
     let cancelled = false;
 
     async function load() {
@@ -50,7 +54,7 @@ export default function NearbyCounselors() {
         const data = await fetchNearbyTherapists({
           lat: activeLoc.lat,
           lng: activeLoc.lng,
-          radius: 100, // 100 km covers the local region; UI filters narrow further
+          radius: 50, // Google Places caps at 50km; matches the server cap.
         });
         if (!cancelled) setCounselors(data);
       } catch {
@@ -62,7 +66,7 @@ export default function NearbyCounselors() {
 
     load();
     return () => { cancelled = true; };
-  }, [activeLoc.lat, activeLoc.lng]);
+  }, [activeLoc.lat, activeLoc.lng, status]);
 
   const filtered = counselors.filter((c) => {
     if (distanceFilter === "any") return true;
