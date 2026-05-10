@@ -36,10 +36,8 @@ export default function Sidebar() {
   // Build nav items with role-based filtering
   const baseNavItems = [
     { label: t("overview"), href: "/dashboard", icon: LayoutDashboard, roles: ["all"] as const },
-    ...(isDoctor() ? [
-      { label: t("analyze"), href: "/dashboard#analyzer", icon: FileText, roles: ["doctor"] as const },
-      { label: t("history"), href: "/dashboard#history", icon: History, roles: ["doctor"] as const },
-    ] : []),
+    { label: t("analyze"), href: "/dashboard#analyzer", icon: FileText, roles: ["all"] as const },
+    { label: t("history"), href: "/dashboard#history", icon: History, roles: ["all"] as const },
     { label: t("counselling"), href: "/counselling", icon: Users, roles: ["all"] as const },
     { label: t("nearby"), href: "/nearby", icon: MapPin, roles: ["all"] as const },
     { label: t("moodTracker"), href: "/mood", icon: Smile, roles: ["all"] as const },

@@ -4,7 +4,7 @@
 import { useEffect } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { X, Brain, LayoutDashboard, FileText, History, Settings, Users, MapPin, Bell, Smile, MessageCircle } from "lucide-react";
+import { X, Brain, LayoutDashboard, FileText, History, Settings, Users, MapPin, Bell, Smile, MessageCircle, Gamepad2, TrendingUp, BookOpen } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { clsx } from "clsx";
 import { useAuthStore } from "@/store/useAuthStore";
@@ -28,7 +28,11 @@ export default function MobileSidebar({ isOpen, onClose }: MobileSidebarProps) {
     { label: t("counselling"), href: "/counselling", icon: Users },
     { label: t("nearby"), href: "/nearby", icon: MapPin },
     { label: t("moodTracker"), href: "/mood", icon: Smile },
+    { label: "Games", href: "/games", icon: Gamepad2 },
+    { label: t("chat"), href: "/chat", icon: MessageCircle },
     { label: "Messages", href: "/messages", icon: MessageCircle },
+    { label: t("analytics"), href: "/analytics", icon: TrendingUp },
+    { label: t("blog"), href: "/blog", icon: BookOpen },
     { label: t("reminders"), href: "/reminders", icon: Bell },
     { label: t("settings"), href: "/settings", icon: Settings },
   ] as const;

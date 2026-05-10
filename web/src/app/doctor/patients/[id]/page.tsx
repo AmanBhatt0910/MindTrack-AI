@@ -34,6 +34,19 @@ import type {
   ClinicalSummary,
   RiskTrendData,
 } from "@/features/doctor/types/doctor.types";
+import PostAnalyzer from "@/features/dashboard/components/PostAnalyzer";
+import type { AnalysisResponse } from "@/features/posts/types/post.types";
+import { api } from "@/lib/axios";
+import Button from "@/components/ui/Button";
+
+interface PatientPostType {
+  _id: string;
+  content: string;
+  allowDoctorAnalysis: boolean;
+  analyzed: boolean;
+  analysisId?: string;
+  createdAt: string;
+}
 
 const RISK_COLORS: Record<string, string> = {
   High: "#ef4444",
@@ -51,17 +64,21 @@ export default function PatientDetailPage() {
   const [clinicalSummary, setClinicalSummary] = useState<ClinicalSummary | null>(null);
   const [loading, setLoading] = useState(true);
   const [summaryLoading, setSummaryLoading] = useState(false);
-  const [activeTab, setActiveTab] = useState<"overview" | "analyses" | "sessions">("overview");
+  const [analyzingPostId, setAnalyzingPostId] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<"overview" | "analyses" | "posts" | "sessions">("overview");
+  const [patientPosts, setPatientPosts] = useState<PatientPostType[]>([]);
 
   useEffect(() => {
     const load = async () => {
       try {
-        const [detailData, trendData] = await Promise.all([
+        const [detailData, trendData, postsRes] = await Promise.all([
           doctorService.getPatientDetail(patientId),
           doctorService.getRiskTrend(patientId),
+          api.get(`/patient-posts?patientId=${patientId}`)
         ]);
         setDetail(detailData);
         setRiskTrend(trendData);
+        setPatientPosts(postsRes.data);
       } catch (err) {
         console.error("Failed to load patient:", err);
       } finally {
@@ -83,6 +100,38 @@ export default function PatientDetailPage() {
     }
   };
 
+  const handleAnalyzePost = async (post: PatientPostType) => {
+    setAnalyzingPostId(post._id);
+    try {
+      // 1. Run the analysis via the postService
+      const res = await api.post("/analysis", {
+        text: post.content,
+        language: "auto",
+        patientId
+      });
+      
+      const analysisData = res.data;
+      
+      if (!analysisData.error) {
+        // 2. Mark the post as analyzed
+        await api.patch(`/patient-posts/${post._id}`, {
+          analysisId: analysisData._id
+        });
+        
+        // 3. Refresh patient detail to show new analysis in recentAnalyses
+        const updatedDetail = await doctorService.getPatientDetail(patientId);
+        setDetail(updatedDetail);
+        
+        // Update local post state
+        setPatientPosts(prev => prev.map(p => p._id === post._id ? { ...p, analyzed: true, analysisId: analysisData._id } : p));
+      }
+    } catch (err) {
+      console.error("Analysis failed:", err);
+    } finally {
+      setAnalyzingPostId(null);
+    }
+  };
+
   if (loading) {
     return (
       <div className="max-w-6xl mx-auto space-y-6">
@@ -101,7 +150,7 @@ export default function PatientDetailPage() {
     return (
       <div className="text-center py-20">
         <p className="text-sm text-(--text-muted)">Patient not found or access denied.</p>
-        <button onClick={() => router.back()} className="mt-4 text-emerald-400 text-sm cursor-pointer">
+        <button onClick={() => router.back()} className="mt-4 text-emerald-400 text-sm cursor-pointer hover:underline">
           Go back
         </button>
       </div>
@@ -177,7 +226,7 @@ export default function PatientDetailPage() {
 
       {/* ─── Tab Navigation ──────────────────────────────────────── */}
       <div className="flex gap-1 border-b border-(--border)">
-        {(["overview", "analyses", "sessions"] as const).map((tab) => (
+        {(["overview", "posts", "analyses", "sessions"] as const).map((tab) => (
           <button
             key={tab}
             onClick={() => setActiveTab(tab)}
@@ -334,8 +383,19 @@ export default function PatientDetailPage() {
 
       {/* ─── Analyses Tab ────────────────────────────────────────── */}
       {activeTab === "analyses" && (
-        <div className="space-y-3">
-          {recentAnalyses.length === 0 ? (
+        <div className="space-y-6">
+          <PostAnalyzer 
+            patientId={patientId}
+            onAnalysisComplete={(analysis) => {
+              // Refresh data or prepend to local state
+              doctorService.getPatientDetail(patientId).then(d => {
+                setDetail(d);
+              });
+            }}
+          />
+          
+          <div className="space-y-3">
+            {recentAnalyses.length === 0 ? (
             <p className="text-sm text-(--text-muted) text-center py-8">No analysis entries yet.</p>
           ) : (
             recentAnalyses.map((a) => (
@@ -378,6 +438,47 @@ export default function PatientDetailPage() {
                 {a.explanation && a.explanation.length > 0 && (
                   <p className="text-xs text-(--text-muted) mt-2 italic">{a.explanation[0]}</p>
                 )}
+              </div>
+            ))
+          )}
+          </div>
+        </div>
+      )}
+
+      {/* ─── Posts Tab ───────────────────────────────────────────── */}
+      {activeTab === "posts" && (
+        <div className="space-y-4">
+          {patientPosts.length === 0 ? (
+            <div className="text-center py-8">
+              <FileText size={32} className="mx-auto mb-2 text-(--text-muted) opacity-40" />
+              <p className="text-sm text-(--text-muted)">No shared posts available from this patient.</p>
+            </div>
+          ) : (
+            patientPosts.map((post) => (
+              <div key={post._id} className="rounded-xl border border-(--border) bg-(--surface) p-5">
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center gap-2 text-xs text-(--text-muted)">
+                    <Calendar size={14} />
+                    {new Date(post.createdAt).toLocaleString()}
+                  </div>
+                  {post.analyzed ? (
+                    <span className="flex items-center gap-1 text-xs text-emerald-400 bg-emerald-500/10 px-2 py-1 rounded-md">
+                      <Sparkles size={12} /> Analyzed
+                    </span>
+                  ) : (
+                    <Button 
+                      variant="primary" 
+                      onClick={() => handleAnalyzePost(post)}
+                      disabled={analyzingPostId === post._id}
+                      loading={analyzingPostId === post._id}
+                      className="!py-1.5 !px-3 !text-xs"
+                      icon={<Sparkles size={12} />}
+                    >
+                      Analyze Post
+                    </Button>
+                  )}
+                </div>
+                <p className="text-sm text-(--text) whitespace-pre-wrap">{post.content}</p>
               </div>
             ))
           )}

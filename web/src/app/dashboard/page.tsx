@@ -197,12 +197,15 @@ export default function DashboardPage() {
             {currentAnalysis && (
               <TherapistAutoMessageAlert analysis={currentAnalysis} />
             )}
-            <PostAnalyzer 
-              onAnalysisComplete={handleAnalysisComplete}
-              initialResult={currentAnalysis}
-            />
           </>
         )}
+
+        {/* Both Patient and Doctor can use the Post Analyzer.
+            Patients can save it, Doctors can view history directly inline. */}
+        <PostAnalyzer 
+          onAnalysisComplete={handleAnalysisComplete}
+          initialResult={currentAnalysis}
+        />
         
         <RecommendationCards />
         {currentAnalysis && (

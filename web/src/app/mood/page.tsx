@@ -5,12 +5,20 @@ import DashboardLayout from "@/layouts/DashboardLayout";
 import MoodInput from "@/features/mood/components/MoodInput";
 import MoodTimeline from "@/features/mood/components/MoodTimeline";
 import { useTranslation } from "@/hooks/useTranslation";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useMoodStore } from "@/features/mood/store/useMoodStore";
 
 export default function MoodPage() {
   const user = useRequireAuth(["patient"]);
   const { t } = useTranslation();
   const [refreshKey, setRefreshKey] = useState(0);
+  const fetchEntries = useMoodStore((s) => s.fetchEntries);
+
+  useEffect(() => {
+    if (user) {
+      fetchEntries();
+    }
+  }, [user, fetchEntries]);
 
   if (!user) return null;
 

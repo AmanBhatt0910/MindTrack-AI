@@ -166,14 +166,28 @@ function determineFinalRiskLevel(
 
 export async function POST(req: Request) {
   try {
-    const { text, language } = await req.json();
+    const { text, language, patientId } = await req.json();
 
-    const userId = await getUserIdFromRequest(req);
+    let userId = await getUserIdFromRequest(req);
     if (!userId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     await connectDB();
+
+    // If patientId is provided, verify that the current user is a doctor assigned to this patient
+    if (patientId && patientId !== userId) {
+      const assignment = await PatientDoctor.findOne({
+        doctorId: userId,
+        patientId,
+        status: "active",
+      });
+      if (!assignment) {
+        return NextResponse.json({ error: "Not authorized to analyze this patient's posts" }, { status: 403 });
+      }
+      // Save the analysis under the patient's ID
+      userId = patientId;
+    }
 
     const mlApiUrl = process.env.ML_API_URL;
     if (!mlApiUrl) {
